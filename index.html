@@ -366,7 +366,7 @@ const SK={
  spin:{n:'스핀 대시',act:true,k:'Shift 꾹 → 떼기',i:'🌀',max:5,d:l=>`힘을 모았다가 지금 속도에 더해 폭발적으로 돌진! 돌진 중엔 무조건 박치기 피해. (최대 +${(130+15*l)}km/h, 쿨 ${cdOf('spin',l).toFixed(1)}초)`},
  pound:{n:'지면 강타',act:true,k:'Shift',i:'☄️',max:5,d:l=>`솟구쳤다가 땅에 내리꽂아 거대한 충격파! 공중에선 바로 내리꽂음. 땅이 파여요! (피해 ${4+2*l}, 범위 ${230+50*l}, 쿨 ${cdOf('pound',l).toFixed(1)}초)`},
  dash:{n:'에어 대시',act:true,k:'Shift',i:'💨',max:5,d:l=>`마우스 방향으로 순간 돌격. 공중에서 ${dashMax(l)}회, 땅에 닿으면 충전.`},
- harpoon:{n:'와이어 작살',k:'좌클릭으로 적 조준',i:'🎯',max:5,d:l=>`와이어가 적에게 꽂히고 0.1초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 빠르게 끌려가 들이받습니다. 부딪힌 뒤엔 속도가 절반 정도로 줄어요.`},
+ harpoon:{n:'와이어 작살',act:true,k:'Shift (마우스로 적 조준)',i:'🎯',max:5,d:l=>`마우스 방향으로 작살을 쏴서 적에게 꽂히면 ${harpoonDelay(l).toFixed(2)}초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 끌려가 들이받아요. 작살로 처치하면 바로 재사용! (쿨 ${cdOf('harpoon',l).toFixed(1)}초)`},
  sling:{n:'슬링샷',k:'와이어를 놓는 순간',i:'🏹',max:5,d:l=>`와이어를 놓을 때 속도 +${8*l}%. 와이어 감는 속도도 빨라짐.`},
  blade:{n:'칼날 와이어',k:'매달린 동안',i:'⚔️',max:5,d:l=>`매달려 스윙하는 동안 와이어 줄에 닿은 적이 베입니다. (초당 ${(3*l).toFixed(0)} 피해)`},
  fire:{n:'화염 궤적',k:'빠르게 움직이기',i:'🔥',max:5,d:l=>`빠르게 움직이면 지나간 자리에 불길이 남아 적을 태웁니다. (초당 ${(2.2*l).toFixed(1)} 피해)`},
@@ -378,9 +378,10 @@ const SK={
  shell:{n:'강철 껍질',k:'패시브',i:'🛡️',max:5,d:l=>`최대 체력 +1, 체력 2 회복.`},
  wire:{n:'롱 와이어',k:'패시브',i:'🪢',max:3,d:l=>`와이어 사거리 +90.`},
 };
-const ACTS=['pound','mega','spin','dash'];          // Shift 액티브 (하나만 선택)
-const DRIVE=['harpoon','sling','blade','fire','bounce','chain']; // 운전 패시브
-const cdOf=(k,l)=>k==='spin'?2.6-0.25*l:k==='pound'?5.5-0.5*l:k==='dash'?0.35:k==='mega'?10-1.2*l:0;
+const ACTS=['pound','mega','spin','dash','harpoon'];          // Shift 액티브 (하나만 선택)
+const DRIVE=['sling','blade','fire','bounce','chain']; // 운전 패시브
+const harpoonDelay=l=>Math.max(0.05,0.35-0.06*l); // 꽂힌 뒤 끌려가기까지 딜레이 (레벨마다 감소)
+const cdOf=(k,l)=>k==='harpoon'?3.2-0.3*l:k==='spin'?2.6-0.25*l:k==='pound'?5.5-0.5*l:k==='dash'?0.35:k==='mega'?10-1.2*l:0;
 const activeSkill=()=>ACTS.find(k=>lv&&lv[k]>0)||null;
 let lv,ST;
 function calcST(){ST={accel:1500+180*lv.engine,maxRun:470+45*lv.engine,air:750,ramMin:330-32*lv.spikes,dmg:1+0.2*lv.spikes,magnet:130,range:520+90*lv.wire,reel:520+70*lv.sling};}
@@ -423,7 +424,7 @@ addEventListener('keyup',e=>{
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;if(state==='play')setPause(true);});
 cv.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
 cv.addEventListener('mousedown',e=>{mouse.x=e.clientX;mouse.y=e.clientY;if(e.button!==0||state!=='play')return;mouse.down=true;fireHook();});
-addEventListener('mouseup',e=>{if(e.button!==0)return;mouse.down=false;if(state!=='play')return;if(hook.state==='att')releaseHook();else if(hook.state==='fly'||hook.state==='prep'){hook.state='back';hook.e=null;}});
+addEventListener('mouseup',e=>{if(e.button!==0)return;mouse.down=false;if(state!=='play')return;if(hook.state==='att')releaseHook();else if((hook.state==='fly'||hook.state==='prep')&&!hook.harpoon){hook.state='back';hook.e=null;}});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 const mouseWorld=()=>({x:mouse.x/S+cam.x,y:mouse.y/S+cam.y});
 
@@ -447,6 +448,7 @@ function useActive(){
     else startPound();
     setCd('pound');return;
   }
+  if(a==='harpoon'){if(hook.state==='prep'||hook.state==='yank')return;fireHarpoon();setCd('harpoon');return;}
   if(a==='mega'){p.mega=3+0.6*lv.mega;setCd('mega');ring(p.x,p.y,160,'#ffb020');shake=10;}
 }
 function jump(){const p=player;if(p.grounded||p.coyote>0){p.vy=-900;p.coyote=0;p.grounded=false;burst(p.x,p.y+p.r,6,'#8899bb',120);}}
@@ -459,8 +461,9 @@ function launchSpin(){
 function fireHook(){
   const p=player;if(hook.state==='att')releaseHook(true);
   const w=mouseWorld(),dx=w.x-p.x,dy=w.y-p.y,d=hyp(dx,dy)||1;
-  Object.assign(hook,{state:'fly',x:p.x,y:p.y,dx:dx/d,dy:dy/d,dist:0,e:null});
+  Object.assign(hook,{state:'fly',x:p.x,y:p.y,dx:dx/d,dy:dy/d,dist:0,e:null,harpoon:false});
 }
+function fireHarpoon(){fireHook();hook.harpoon=true;}
 function releaseHook(silent){
   const p=player;
   if(hook.state==='att'&&!silent){
@@ -677,9 +680,14 @@ function updateBoulders(dt){
   const p=player;
   for(const b of boulders){
     b.life-=dt;
-    b.vy+=GRAV*(b.ref?0.45:1)*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
-    const r=collideCircle(b,b.r,b.ref?0.4:0.15);b.ang+=b.vx/b.r*dt;
-    if(b.ref&&r.imp>200)b.life=Math.min(b.life,1.2);
+    if(b.ref&&boss&&!boss.dead){ // 반사된 바위: 지형을 뚫고 골렘에게 날아감
+      const dx=boss.x-b.x,dy=boss.y-b.y,d=hyp(dx,dy)||1;b.vx=dx/d*1250;b.vy=dy/d*1250;b.x+=b.vx*dt;b.y+=b.vy*dt;b.ang+=0.3;
+      if(Math.random()<0.7&&parts.length<700)parts.push({x:b.x,y:b.y,vx:-b.vx*0.1+rand(-40,40),vy:-b.vy*0.1+rand(-40,40),life:.3,max:.3,c:'#ffd166',s:3});
+    }else{
+      b.vy+=GRAV*(b.ref?0.45:1)*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+      const r=collideCircle(b,b.r,b.ref?0.4:0.15);b.ang+=b.vx/b.r*dt;
+      if(b.ref&&r.imp>200)b.life=Math.min(b.life,1.2);
+    }
     if(b.life<=0){b.dead=true;burst(b.x,b.y,10,'#8a7466',220);continue;}
     const d=hyp(b.x-p.x,b.y-p.y);
     if(!b.ref&&d<b.r+p.r*p.scale){
@@ -865,9 +873,10 @@ function update(dt){
     const sub=4,stp=3000*dt/sub;
     outer:for(let i=0;i<sub;i++){
       hook.x+=hook.dx*stp;hook.y+=hook.dy*stp;hook.dist+=stp;
-      if(lv.harpoon){for(const e of enemies){if(!e.dead&&!e.hidden&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=0.1;p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
+      if(hook.harpoon){for(const e of enemies){if(!e.dead&&!e.hidden&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=harpoonDelay(lv.harpoon);p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
+      if(hook.harpoon&&solidAt(hook.x,hook.y)){hook.state='back';p.qCd=Math.min(p.qCd,1);break;}
       if(solidAt(hook.x,hook.y)){hook.state='att';hook.len=Math.max(30,hyp(p.x-hook.x,p.y-hook.y));p.pound=false;burst(hook.x,hook.y,6,'#9ef0ff',160);break;}
-      if(hook.dist>ST.range){hook.state='back';break;}
+      if(hook.dist>ST.range){hook.state='back';if(hook.harpoon)p.qCd=Math.min(p.qCd,1);break;}
     }
   }else if(hook.state==='back'){
     const dx=p.x-hook.x,dy=p.y-hook.y,d=hyp(dx,dy);
@@ -1006,6 +1015,7 @@ function update(dt){
         const vn=p.vx*nx+p.vy*ny;if(vn>0){p.vx-=1.5*vn*nx;p.vy-=1.5*vn*ny;}p.vy-=150;
         const o=pr2+e.r-d;p.x-=nx*o;p.y-=ny*o;
       }
+      if(wasYank&&e.dead){p.qCd=0;txt(p.x,p.y-48,'🎯 재사용!','#ffd166');}
       if(wasYank){
         // 반동: 화면이 진행 반대쪽으로 확 튀어서 다음 조준이 어려워짐
         const s0=hyp(p.vx,p.vy)||1,ux=p.vx/s0,uy=p.vy/s0,side=Math.random()<0.5?-1:1,K=rand(150,200);
@@ -1344,7 +1354,7 @@ function render(){
   if(state==='play'&&hook.state!=='att'){
     const w=mouseWorld(),dx=w.x-p.x,dy=w.y-p.y,d=hyp(dx,dy)||1,ux=dx/d,uy=dy/d;
     let hit=-1,hitE=false;
-    for(let t=0;t<=ST.range;t+=12){const x=p.x+ux*t,y=p.y+uy*t;if(lv.harpoon&&enemies.some(e=>!e.hidden&&hyp(e.x-x,e.y-y)<e.r+22)){hit=t;hitE=true;break;}if(solidAt(x,y)){hit=t;break;}}
+    for(let t=0;t<=ST.range;t+=12){const x=p.x+ux*t,y=p.y+uy*t;if(false&&enemies.some(e=>!e.hidden&&hyp(e.x-x,e.y-y)<e.r+22)){hit=t;hitE=true;break;}if(solidAt(x,y)){hit=t;break;}}
     const L=hit<0?ST.range:hit;
     ctx.setLineDash([6,8]);ctx.strokeStyle=hit<0?'rgba(255,255,255,.15)':hitE?'rgba(255,209,102,.6)':'rgba(45,226,198,.45)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+ux*L,p.y+uy*L);ctx.stroke();ctx.setLineDash([]);
