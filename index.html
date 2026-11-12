@@ -116,12 +116,19 @@ const MAPS=[
    [2300,700,160,40],[2800,380,200,40],[3300,650,160,40],[3700,950,160,40],[4000,800,140,40],
    [4450,750,160,40],[4800,1000,140,40],
    [1000,350,120,40],[2000,300,140,40],[3800,350,140,40],[4600,400,120,40]]},
+{id:'volcano',name:'용암 화산',emoji:'🌋',desc:'뜨거운 용암 골짜기. 느리면 데이지만, 속도 100 이상이면 용암 위를 미끄러져 건너요!',
+  w:3000,floor:1560,start:[200,1300],theme:'volcano',boss:'serpent',extend:{chunks:13,chunkW:1400},
+  terrain:[[0,1400],[350,1400],[650,1300],[900,1180],[1000,1300],[1060,1640],[1420,1640],[1480,1320],[1600,1250],[1900,1380],[2200,1250],[2500,1150],[2700,1260],[3000,1300]],
+  lava:[[1010,1470,1345]],
+  rects:[[1150,820,150,40],[600,850,140,40],[1700,780,140,40],[2300,700,150,40],[2750,820,140,40],[1300,420,130,40]]},
 ];
 const THEMES={
  city:{fill:'#161d36',hatch:'rgba(120,150,255,.07)',edge:'#2de2c6',top:'#2de2c6',ground:'#121830',ground2:'#0a0e1e',groundTop:'#2de2c6',bg:['#0a1030','#1a1340','#2b1238']},
  mountain:{fill:'#2e2440',hatch:'rgba(255,180,120,.06)',edge:'#c98a5e',top:'#8be38f',ground:'#1d2b33',ground2:'#141c24',groundTop:'#8be38f',bg:['#1b1035','#6b2f5a','#ff8a5b']},
 };
 THEMES.city.kind='city';THEMES.mountain.kind='mountain';
+THEMES.volcano={kind:'volcano',fill:'#2a1a18',hatch:'rgba(255,120,60,.06)',edge:'#ff7b3a',top:'#ff9a3a',ground:'#1e1514',ground2:'#0f0a0a',groundTop:'#ff6a2a',bg:['#140404','#3a0c08','#7a2010'],sky:['#4a1410','#2a0b0a']};
+THEMES.volcanoBoss=Object.assign({},THEMES.volcano,{bg:['#0c0202','#2a0606','#5a1208'],groundTop:'#ff3a1a'});
 THEMES.cityBoss=Object.assign({},THEMES.city,{edge:'#ff5e7a',top:'#ff5e7a',groundTop:'#ff5e7a',ground:'#1a0e1c',ground2:'#0d0710',bg:['#12040c','#2e0a1e','#561430']});
 THEMES.mountainBoss=Object.assign({},THEMES.mountain,{groundTop:'#ff9a3a',ground:'#2a1a16',ground2:'#160c0a',top:'#ff9a3a',bg:['#160404','#4a0f10','#b8441a']});
 let curTheme='city';
@@ -154,18 +161,35 @@ function genMountain(R,rs,tp,x0,cw){
   for(let rx=x0+R(60,200);rx<x0+cw-100;rx+=R(380,520)){const w=R(120,170),gy=Math.min(groundYOf(tt,rx,0),groundYOf(tt,rx+w,0));rs.push([rx,Math.max(220,gy-R(380,560)),w,40]);}
   if(R(0,1)<0.6)rs.push([x0+R(200,1100),R(250,400),R(120,160),40]);
 }
+function genVolcano(R,rs,tp,lv,x0,cw){
+  let last=tp[tp.length-1];
+  while(last[0]<x0+cw){
+    if(R(0,1)<0.32&&last[1]<1450&&last[1]>900){ // 용암 골짜기
+      const w=R(340,580),rim=last[1],depth=R(150,230),bot=Math.min(rim+depth,1690),x=last[0];
+      const er=clamp(rim+R(-90,30),900,1450);
+      tp.push([x+45,rim+(bot-rim)*0.55],[x+95,bot],[x+w-95,bot],[x+w-45,er+(bot-er)*0.55],[x+w,er]);
+      lv.push([x+15,x+w-15,Math.max(rim,er)+32]);
+      rs.push([x+w/2-70,Math.min(rim,er)-R(400,480),140,40]);
+      last=[x+w,er];
+    }else{
+      const dx=R(200,340);let ny=last[1]+R(-1.15,1.15)*dx+(1250-last[1])*0.2;ny=clamp(ny,720,1480);last=[last[0]+dx,ny];tp.push(last);
+    }
+  }
+  const tt=tp.map(p=>({x:p[0],y:p[1]}));
+  for(let rx=x0+R(80,240);rx<x0+cw-100;rx+=R(420,560)){const w=R(120,160),gy=Math.min(groundYOf(tt,rx,0),groundYOf(tt,rx+w,0));rs.push([rx,Math.max(220,gy-R(400,540)),w,40]);}
+}
 function mapGeom(m){
   if(m._g)return m._g;
   const R0=seeded(m.id),R=(a,b)=>a+R0()*(b-a);
-  let rs=m.rects.slice(),tp=m.terrain?m.terrain.map(p=>p.slice()):null,w=m.w;
+  let rs=m.rects.slice(),tp=m.terrain?m.terrain.map(p=>p.slice()):null,w=m.w,lv=(m.lava||[]).map(a=>a.slice());
   if(m.extend)for(let c=0;c<m.extend.chunks;c++){
-    if(m.theme==='mountain')genMountain(R,rs,tp,w,m.extend.chunkW);else genCity(R,rs,tp,w,m.extend.chunkW);
+    if(m.theme==='mountain')genMountain(R,rs,tp,w,m.extend.chunkW);else if(m.theme==='volcano')genVolcano(R,rs,tp,lv,w,m.extend.chunkW);else genCity(R,rs,tp,w,m.extend.chunkW);
     w+=m.extend.chunkW;
   }
   const r=[[-300,-400,w+600,440],[-300,-400,340,2600],[w-40,-400,340,2600],tp?[-300,1720,w+600,400]:[-300,m.floor,w+600,400]];
   let t=null;
   if(tp){t=tp.map(p=>({x:p[0],y:p[1]}));t.unshift({x:-400,y:t[0].y});t.push({x:Math.max(w+400,t[t.length-1].x+50),y:t[t.length-1].y});}
-  return m._g={rects:r.concat(rs).map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]})),terr:t,w};
+  return m._g={rects:r.concat(rs).map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]})),terr:t,w,lava:lv.map(a=>({x0:a[0],x1:a[1],y:a[2],base:a[2]}))};
 }
 function groundYOf(t,x,fl){
   if(!t)return fl;
@@ -174,9 +198,9 @@ function groundYOf(t,x,fl){
 }
 const groundY=x=>groundYOf(terr,x,FLOOR);
 function genSky(kind,w){
-  if(kind==='mountain'){
+  if(kind==='mountain'||kind==='volcano'){
     sky=[0.12,0.3].map((f,li)=>{const pts=[],ph=Math.random()*10;for(let x=-200;x<w*f+3200;x+=40)pts.push({x,h:(li?240:400)+Math.sin(x*0.004+ph)*120+Math.sin(x*0.011+ph*2)*60+Math.sin(x*0.031)*18});return{f,pts};});
-    decor=[];if(terr)for(let x=80;x<w-80;x+=rand(50,150)){decor.push({x,y:groundY(x)+4,h:rand(34,70)});}
+    decor=[];if(terr&&kind==='mountain')for(let x=80;x<w-80;x+=rand(50,150)){decor.push({x,y:groundY(x)+4,h:rand(34,70)});}
   }else{
     sky=[0.15,0.32].map((f,li)=>{const arr=[];let x=-200;while(x<w*f+3000){const bw=rand(60,170);arr.push({x,w:bw,h:rand(120,420)*(li?1.15:0.9),win:Math.random()});x+=bw+rand(6,40);}return{f,arr};});
     decor=[];
@@ -185,6 +209,7 @@ function genSky(kind,w){
 function loadMap(m){
   MAP=m;FLOOR=m.floor;curTheme=m.theme;pads=(m.pads||[]).map(x=>({x,cd:0}));
   const g=mapGeom(m);g.rects=g.rects.filter(r=>!r.arena);rects=g.rects.slice();terr=g.terr&&g.terr.map(q=>({x:q.x,y:q.y}));terr0=g.terr;WORLD={w:g.w,h:1700};
+  lavas=g.lava.map(l=>({...l}));
   genSky(THEMES[curTheme].kind,g.w);
 }
 /* ---------------- 보스 전용 맵 ----------------
@@ -197,6 +222,11 @@ const BOSS_ARENAS={
              [2180,1600],[2350,1580],[2490,1520],[2600,1430],[2680,1300],[2730,1120],[2760,880]],
     rects:[[480,1110,120,26],[820,1150,120,26],[1180,1100,110,26],[1520,1150,120,26],[1880,1100,110,26],[2220,1150,120,26],
            [650,700,150,30],[1300,620,150,30],[1980,700,150,30],[1640,620,30,140]]},
+  serpent:{id:'arena-serpent',theme:'volcanoBoss',w:3000,floor:1560,start:[380,1300],bossX:1500,pads:[],
+    // 가운데 큰 용암 호수 + 양쪽 둑과 하프파이프
+    terrain:[[40,820],[110,1150],[260,1360],[520,1450],[840,1470],[900,1660],[2100,1660],[2160,1470],[2480,1450],[2740,1360],[2890,1150],[2960,820]],
+    lava:[[880,2120,1495]],
+    rects:[[1040,1060,140,40],[1430,960,140,40],[1820,1060,140,40],[1230,600,140,40],[1630,600,140,40],[360,960,130,40],[2510,960,130,40]]},
   golem:{id:'arena-golem',theme:'mountainBoss',w:3000,floor:1560,start:[450,1450],bossX:1500,pads:[],
     // 가운데 봉우리(골렘 자리) — 양쪽 골짜기 — 바깥 하프파이프
     terrain:[[40,820],[90,1150],[180,1360],[320,1490],[600,1560],[900,1460],[1200,1180],[1500,960],
@@ -204,11 +234,12 @@ const BOSS_ARENAS={
     rects:[[540,1060,140,40],[1030,820,140,40],[1830,820,140,40],[2320,1060,140,40],
            [1240,450,140,40],[1620,450,140,40],[300,760,120,40],[2580,760,120,40]]},
 };
-let pads=[],shatter=null;
+let pads=[],shatter=null,lavas=[];
+const lavaAt=x=>{for(const l of lavas)if(x>l.x0&&x<l.x1)return l;return null;};
 function loadArena(def){
   const g=mapGeom(Object.assign({rects:[],terrain:null},def));
   rects=g.rects.slice();terr=g.terr&&g.terr.map(q=>({x:q.x,y:q.y}));terr0=g.terr;WORLD={w:g.w,h:1700};FLOOR=def.floor;curTheme=def.theme;
-  pads=(def.pads||[]).map(x=>({x,cd:0}));genSky(THEMES[curTheme].kind,g.w);
+  pads=(def.pads||[]).map(x=>({x,cd:0}));lavas=g.lava.map(l=>({...l}));genSky(THEMES[curTheme].kind,g.w);
 }
 function startBossTransition(){
   // 1) 지금 화면을 찍어서 조각으로 쪼갬
@@ -321,7 +352,7 @@ const SK={
  spin:{n:'스핀 대시',act:true,k:'Shift 꾹 → 떼기',i:'🌀',max:5,d:l=>`힘을 모았다가 지금 속도에 더해 폭발적으로 돌진! 돌진 중엔 무조건 박치기 피해. (최대 +${(130+15*l)}km/h, 쿨 ${cdOf('spin',l).toFixed(1)}초)`},
  pound:{n:'지면 강타',act:true,k:'Shift',i:'☄️',max:5,d:l=>`솟구쳤다가 땅에 내리꽂아 거대한 충격파! 공중에선 바로 내리꽂음. 땅이 파여요! (피해 ${4+2*l}, 범위 ${230+50*l}, 쿨 ${cdOf('pound',l).toFixed(1)}초)`},
  dash:{n:'에어 대시',act:true,k:'Shift',i:'💨',max:5,d:l=>`마우스 방향으로 순간 돌격. 공중에서 ${dashMax(l)}회, 땅에 닿으면 충전.`},
- harpoon:{n:'와이어 작살',k:'좌클릭으로 적 조준',i:'🎯',max:5,d:l=>`와이어가 적에게 꽂히고 0.2초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 빠르게 끌려가 들이받습니다. 부딪힌 뒤엔 속도가 절반 정도로 줄어요.`},
+ harpoon:{n:'와이어 작살',k:'좌클릭으로 적 조준',i:'🎯',max:5,d:l=>`와이어가 적에게 꽂히고 0.1초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 빠르게 끌려가 들이받습니다. 부딪힌 뒤엔 속도가 절반 정도로 줄어요.`},
  sling:{n:'슬링샷',k:'와이어를 놓는 순간',i:'🏹',max:5,d:l=>`와이어를 놓을 때 속도 +${8*l}%. 와이어 감는 속도도 빨라짐.`},
  blade:{n:'칼날 와이어',k:'매달린 동안',i:'⚔️',max:5,d:l=>`매달려 스윙하는 동안 와이어 줄에 닿은 적이 베입니다. (초당 ${(3*l).toFixed(0)} 피해)`},
  fire:{n:'화염 궤적',k:'빠르게 움직이기',i:'🔥',max:5,d:l=>`빠르게 움직이면 지나간 자리에 불길이 남아 적을 태웁니다. (초당 ${(2.2*l).toFixed(1)} 피해)`},
@@ -466,6 +497,23 @@ function crater(x,y,R2){
   // 파편
   for(let i=0;i<22&&parts.length<700;i++){const a=rand(Math.PI*1.1,Math.PI*1.9),sp=rand(250,650);parts.push({x:x+rand(-20,20),y:y-4,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.5,1),max:1,c:Math.random()<0.5?(THEMES[curTheme].kind==='mountain'?'#6e5a4e':'#3a4466'):'#9aa3b5',s:rand(4,8)});}
 }
+function drawLava(){
+  const now=performance.now()/1000,vx=cam.x,vw=W/S;
+  for(const l of lavas){
+    if(l.x1<vx-50||l.x0>vx+vw+50)continue;
+    const g=ctx.createLinearGradient(0,l.y,0,l.y+260);g.addColorStop(0,'#ffb02a');g.addColorStop(0.15,'#ff5a14');g.addColorStop(1,'#7a1406');
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(l.x0,l.y+700);
+    for(let x=l.x0;x<=l.x1;x+=16)ctx.lineTo(x,l.y+Math.sin(x*0.03+now*3)*3);
+    ctx.lineTo(l.x1,l.y+700);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,240,170,.85)';ctx.lineWidth=3;ctx.beginPath();
+    for(let x=l.x0;x<=l.x1;x+=16){const y=l.y+Math.sin(x*0.03+now*3)*3;x===l.x0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
+    // 거품
+    for(let i=0;i<(l.x1-l.x0)/60;i++){const bx=l.x0+((i*97+Math.floor(now*0.7+i)*53)%(l.x1-l.x0)),ph=(now*0.7+i*0.37)%1;
+      ctx.fillStyle=`rgba(255,200,90,${0.7*(1-ph)})`;ctx.beginPath();ctx.arc(bx,l.y-ph*10,3+ph*5,0,7);ctx.fill();}
+    // 빛
+    const gl=ctx.createLinearGradient(0,l.y-120,0,l.y);gl.addColorStop(0,'rgba(255,120,30,0)');gl.addColorStop(1,'rgba(255,120,30,.22)');ctx.fillStyle=gl;ctx.fillRect(l.x0,l.y-120,l.x1-l.x0,120);
+  }
+}
 function drawCraters(){
   for(const c of craters){
     const a=Math.min(1,c.life/3);
@@ -476,7 +524,7 @@ function drawCraters(){
 }
 function shockwave(x,y,R,dmg,c){
   ring(x,y,R,c);burst(x,y,22,c,380);shake=Math.max(shake,8);
-  for(const e of enemies){const dx=e.x-x,dy=e.y-y,d=hyp(dx,dy)||1;if(d<R+e.r)hitEnemy(e,dmg,dx/d,dy/d,520);}
+  for(const e of enemies){if(e.hidden)continue;const dx=e.x-x,dy=e.y-y,d=hyp(dx,dy)||1;if(d<R+e.r)hitEnemy(e,dmg,dx/d,dy/d,520);}
   for(const b of bullets){if(hyp(b.x-x,b.y-y)<R)b.dead=true;}
 }
 function hurt(sx,sy){
@@ -504,6 +552,7 @@ function spawnEnemy(type){
     x=clamp(x,70,WORLD.w-70);y=clamp(y,80,groundY(x)-T.r-4);
     if(hyp(x-player.x,y-player.y)<420)continue;
     if(solidCircle(x,y,T.r+2))continue;
+    if(T.ground&&lavaAt(x))continue;
     enemies.push(mkEnemy(type,x,y,scale));
     return;
   }
@@ -519,6 +568,7 @@ function pickType(){
 const RAGE_MAX=60;
 const BOSSES={
   tank:{name:'철갑 롤러',icon:'⚙️',hp:150,r:58,hint:'💡 장갑은 게이지 100 이상으로 들이받아야 깨져요! 와이어로 속도를 모으세요'},
+  serpent:{name:'용암 뱀',icon:'🐍',hp:220,r:34,hint:'💡 용암이 부글거리는 곳에서 튀어나와요! 뛰어오른 머리를 들이받으세요 (몸통은 안 통해요)'},
   golem:{name:'산사태 골렘',icon:'🗿',hp:190,r:56,hint:'💡 굴러오는 바위를 빠르게 들이받아 5번 되돌려 보내면 골렘이 무너져요!'},
 };
 function spawnBoss(){
@@ -527,11 +577,13 @@ function spawnBoss(){
   const e={boss:true,kind:MAP.boss,type:'boss',x:bx,y:groundY(bx)-B.r-650,vy:300,vx:0,r:B.r,hp:B.hp*hpMul,maxHp:B.hp*hpMul,col:'#ff6b3d',xp:30,armor:0,
     stun:0,flash:0,hitCd:0,burnCd:0,bladeCd:0,ph:0,grounded:false,gnx:0,gny:-1,face:-1,st:'drop',t:0,phase:1,armorHits:0,reflectHits:0,ang:0,home:bx,spawnT:6,airT:0,throwAnim:0,
     shape:Array.from({length:14},(_,i)=>0.86+Math.random()*0.22),cracks:Array.from({length:6},()=>({a:rand(0,6.28),l:rand(0.4,0.9)}))};
+  if(e.kind==='serpent'){e.lake=lavaAt(bx);e.st='sub';e.t=2;e.hidden=true;e.y=e.lake.y+140;e.tx=bx;e.trail=[];e.msgT=0;}
   enemies.push(e);boss=e;bossActive=true;bossHintT=6;
 }
 function bossResist(e){ // 박치기가 아닌 피해(충격파·불·칼날)에 대한 저항
   if(e.kind==='tank')return e.armorHits<3?0.2:1;
   if(e.kind==='golem')return e.phase===1?0.3:1;
+  if(e.kind==='serpent')return 0.6;
   return 1;
 }
 function bossRam(e,dmg,spd){
@@ -548,6 +600,7 @@ function bossRam(e,dmg,spd){
     }
     return dmg*1.4;
   }
+  if(e.kind==='serpent'){txt(e.x,e.y-e.r-14,'머리 명중!','#ffd166');shake=Math.max(shake,10);return dmg*1.3;}
   if(e.kind==='golem'){
     if(e.phase===1){txt(e.x,e.y-e.r-10,'단단하다!','#c9a27e');return dmg*0.25;}
     return dmg*1.2;
@@ -559,6 +612,7 @@ function bossLand(e,R){
   const p=player;if(p.grounded&&Math.abs(p.x-e.x)<R&&Math.abs(p.y-(e.y+e.r))<120)hurt(e.x,e.y+e.r);
 }
 function updateBoss(e,dt){
+  if(e.kind==='serpent'){updateSerpent(e,dt);return;}
   const p=player,dx=p.x-e.x;e.t-=dt;e.throwAnim=Math.max(0,e.throwAnim-dt);
   e.face=Math.sign(dx)||e.face;
   if(e.st==='drop'){ // 등장
@@ -646,7 +700,69 @@ function bossDown(e){
   for(const x of enemies)if(!x.boss&&!x.dead){x.dead=true;burst(x.x,x.y,8,x.col,200);}
   player.hp=player.maxHp;clearT=2.5;
 }
+function updateSerpent(e,dt){
+  const p=player,L=e.lake,ph2=e.phase===2;e.t-=dt;e.msgT=Math.max(0,e.msgT-dt);
+  if(!ph2&&e.hp<=e.maxHp*0.5){e.phase=2;bossHintT=4;shake=18;txt(e.x,L.y-80,'용암이 차오른다!','#ff7b29');}
+  if(ph2)L.y+=((L.base-75)-L.y)*Math.min(1,dt*0.8); // 2페이즈: 용암 수위 상승
+  const lo=L.x0+110,hi=L.x1-110;
+  if(e.st==='sub'){ // 용암 속에서 다음 위치로 이동
+    e.hidden=true;e.x+=(e.tx-e.x)*Math.min(1,dt*3);e.y=L.y+140;
+    if(e.t<=0){
+      const vy0=ph2?1340:1200,g=GRAV*0.9,T=2*vy0/g,land=clamp(p.x+rand(-80,80),lo,hi);
+      e.x=e.tx;e.y=L.y+30;e.vy=-vy0;e.vx=(land-e.x)/T;e.st='leap';e.hidden=false;e.spit=false;
+      burst(e.x,L.y,40,'#ff9a3a',520);ring(e.x,L.y,120,'#ff7b29');shake=Math.max(shake,10);
+    }
+  }else if(e.st==='leap'){
+    const prevVy=e.vy;e.vy+=GRAV*0.9*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
+    if(ph2&&!e.spit&&prevVy<0&&e.vy>=0){ // 꼭대기에서 용암 덩어리 3발
+      e.spit=true;const dx=p.x-e.x,dy=p.y-e.y,a=Math.atan2(dy,dx);
+      for(const k of[-0.25,0,0.25])bullets.push({x:e.x,y:e.y,vx:Math.cos(a+k)*560,vy:Math.sin(a+k)*560-200,g:900,life:4,lava:true});
+    }
+    if(e.vy>0&&e.y>L.y+20){
+      e.st='sub';e.hidden=true;e.t=ph2?rand(0.9,1.4):rand(1.3,2.0);e.tx=clamp(p.x+rand(-120,120),lo,hi);
+      burst(e.x,L.y,30,'#ff9a3a',420);ring(e.x,L.y,90,'#ff7b29');
+    }
+  }
+  e.ang=Math.atan2(e.vy||0,e.vx||1);
+  e.trail.unshift({x:e.x,y:e.y});if(e.trail.length>140)e.trail.length=140;
+  // 몸통: 닿으면 위험, 박치기해도 튕겨 나옴
+  const pr=p.r*p.scale,sp=hyp(p.vx,p.vy);
+  for(let i=6;i<e.trail.length;i+=4){
+    const q=e.trail[i];if(q.y>L.y-4)continue;const sr=Math.max(14,26-i*0.08);
+    const dx=p.x-q.x,dy=p.y-q.y,d=hyp(dx,dy)||1;if(d>sr+pr)continue;
+    if(p.ramGrace>0)break;
+    if(sp>=ST.ramMin||p.attack>0||p.mega>0){p.vx=dx/d*Math.max(450,sp*0.6);p.vy=dy/d*Math.max(450,sp*0.6)-200;p.ramGrace=0.4;
+      if(e.msgT<=0){txt(q.x,q.y-30,'몸통은 단단해! 머리를 노려!','#ffb36b');e.msgT=1.5;}}
+    else hurt(q.x,q.y);
+    break;
+  }
+}
+function drawSerpent(e){
+  const L=e.lake,now=performance.now()/1000,f=e.flash>0;
+  // 튀어나올 위치 경고 (부글부글)
+  if(e.st==='sub'&&e.t<0.9){const a=0.5+0.5*Math.sin(now*25);ctx.fillStyle=`rgba(255,230,120,${0.35*a})`;ctx.beginPath();ctx.ellipse(e.tx,L.y,70,14,0,0,7);ctx.fill();
+    for(let i=0;i<4;i++){const ph=(now*2+i*0.25)%1;ctx.fillStyle=`rgba(255,210,100,${1-ph})`;ctx.beginPath();ctx.arc(e.tx+Math.sin(i*2.1)*40,L.y-ph*24,4+ph*6,0,7);ctx.fill();}}
+  ctx.save();ctx.beginPath();ctx.rect(cam.x-200,cam.y-400,W/S+400,L.y-(cam.y-400)+2);ctx.clip(); // 용암 위만 그림
+  for(let i=e.trail.length-1;i>=4;i-=4){const q=e.trail[i],r=Math.max(12,26-i*0.08);
+    const g=ctx.createRadialGradient(q.x-r*0.3,q.y-r*0.3,r*0.2,q.x,q.y,r);g.addColorStop(0,f?'#fff':'#ff9a3a');g.addColorStop(1,f?'#fff':'#7a1a0a');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(q.x,q.y,r,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(40,10,5,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y,r*0.7,0.3,2.6);ctx.stroke();}
+  if(!e.hidden||e.y<L.y+e.r){
+    ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.ang);
+    const r=e.r;ctx.fillStyle=f?'#fff':'#c4320e';ctx.beginPath();ctx.ellipse(0,0,r*1.25,r,0,0,7);ctx.fill();
+    ctx.fillStyle=f?'#fff':'#ff8a2a';ctx.beginPath();ctx.ellipse(r*0.2,r*0.35,r*0.9,r*0.4,0,0,7);ctx.fill();
+    // 입
+    ctx.fillStyle='#2a0604';ctx.beginPath();ctx.moveTo(r*1.25,0);ctx.lineTo(r*0.4,r*0.25);ctx.lineTo(r*0.4,-r*0.05);ctx.closePath();ctx.fill();
+    ctx.fillStyle=`rgba(255,220,120,${0.6+0.4*Math.sin(now*12)})`;ctx.beginPath();ctx.arc(r*0.7,r*0.08,r*0.12,0,7);ctx.fill();
+    // 눈 + 뿔
+    ctx.fillStyle='#fff3a0';ctx.shadowColor='#ffcc33';ctx.shadowBlur=12;ctx.beginPath();ctx.ellipse(r*0.45,-r*0.45,r*0.2,r*0.12,0,0,7);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#3a0c06';ctx.beginPath();ctx.moveTo(-r*0.2,-r*0.8);ctx.lineTo(-r*0.9,-r*1.5);ctx.lineTo(-r*0.6,-r*0.7);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
 function drawBoss(e){
+  if(e.kind==='serpent'){drawSerpent(e);return;}
   const f=e.flash>0,now=performance.now()/1000;
   ctx.save();ctx.translate(e.x,e.y);
   if(e.kind==='tank'){
@@ -734,14 +850,14 @@ function update(dt){
     const sub=4,stp=3000*dt/sub;
     outer:for(let i=0;i<sub;i++){
       hook.x+=hook.dx*stp;hook.y+=hook.dy*stp;hook.dist+=stp;
-      if(lv.harpoon){for(const e of enemies){if(!e.dead&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=0.2;p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
+      if(lv.harpoon){for(const e of enemies){if(!e.dead&&!e.hidden&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=0.1;p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
       if(solidAt(hook.x,hook.y)){hook.state='att';hook.len=Math.max(30,hyp(p.x-hook.x,p.y-hook.y));p.pound=false;burst(hook.x,hook.y,6,'#9ef0ff',160);break;}
       if(hook.dist>ST.range){hook.state='back';break;}
     }
   }else if(hook.state==='back'){
     const dx=p.x-hook.x,dy=p.y-hook.y,d=hyp(dx,dy);
     if(d<40)hook.state='none';else{hook.x+=dx/d*4000*dt;hook.y+=dy/d*4000*dt;}
-  }else if(hook.state==='prep'){ // 작살이 꽂힌 뒤 0.2초 동안 줄이 팽팽해지는 준비 시간
+  }else if(hook.state==='prep'){ // 작살이 꽂힌 뒤 0.1초 동안 줄이 팽팽해지는 준비 시간
     const e=hook.e;hook.t-=dt;
     if(!e||e.dead){hook.state='none';hook.e=null;}
     else{hook.x=e.x;hook.y=e.y;
@@ -773,6 +889,20 @@ function update(dt){
   if(p.grounded){p.coyote=0.1;p.dashC=dashMax(lv.dash);}else p.coyote=Math.max(0,p.coyote-dt);
   if(res.imp>480&&lv.bounce&&bounceCd<=0&&!p.pound){bounceCd=0.25;shockwave(p.x-res.nx*pr,p.y-res.ny*pr,70+15*lv.bounce,1+0.7*lv.bounce,'#ff9f43');}
   else if(res.imp>650){shake=Math.max(shake,4);burst(p.x-res.nx*pr,p.y-res.ny*pr,6,'#9ab',160);}
+  {const l=lavaAt(p.x);
+    if(l&&p.y+pr>l.y){
+      const spd=hyp(p.vx,p.vy);
+      if(spd>=1000&&Math.abs(p.vx)>500){ // 물수제비처럼 용암 위를 미끄러짐
+        p.y=l.y-pr;if(p.vy>0)p.vy=0;p.grounded=true;p.coyote=0.1;p.pound=false;
+        if(Math.random()<0.6&&parts.length<700)parts.push({x:p.x-Math.sign(p.vx)*pr,y:l.y-2,vx:-p.vx*0.2+rand(-60,60),vy:-rand(150,350),life:.4,max:.4,c:Math.random()<0.5?'#ffd166':'#ff7b29',s:rand(2,4)});
+        p.skimT=(p.skimT||0)+dt;if(p.skimT>0.05&&!p.skimShown){p.skimShown=true;txt(p.x,p.y-30,'🔥 용암 질주!','#ffd166');}
+      }else{
+        p.y=l.y-pr;p.pound=false;
+        if(p.inv<=0&&p.mega<=0){hurt(p.x,l.y+40);txt(p.x,p.y-30,'앗 뜨거!','#ff7b29');}
+        p.vy=-980;p.vx*=0.6;burst(p.x,l.y,18,'#ff7b29',300);
+      }
+    }else{p.skimT=0;p.skimShown=false;}
+  }
   if(p.pound&&p.grounded){p.pound=false;const R2=230+50*lv.pound;crater(p.x,p.y+pr,R2);shockwave(p.x,p.y+pr,R2,4+2*lv.pound,'#ffd166');ring(p.x,p.y+pr,R2*0.6,'#fff3c4');shake=Math.max(shake,16);hitStop=Math.max(hitStop,0.05);p.vy=-480;p.grounded=false;}
   // 굴러가는 회전
   if(p.charge>=0)p.ang+=p.face*p.spinV*dt;
@@ -823,10 +953,11 @@ function update(dt){
       e.x+=e.vx*dt;e.y+=e.vy*dt;
       e.x=clamp(e.x,50,WORLD.w-50);e.y=clamp(e.y,50,groundY(e.x)-e.r);
     }
+    if(!e.boss&&!e.dead){const l=lavaAt(e.x);if(l&&e.y+e.r*0.5>l.y){killEnemy(e);burst(e.x,l.y,14,'#ff7b29',260);continue;}}
     // 화염
-    if(lv.fire&&e.burnCd<=0){for(const f of flames){if(hyp(f.x-e.x,f.y-e.y)<f.r+e.r){e.burnCd=0.2;hitEnemy(e,0.44*lv.fire*ST.dmg,0,-1,40);burst(e.x,e.y,3,'#ff7b29',120);break;}}}
+    if(lv.fire&&e.burnCd<=0&&!e.hidden){for(const f of flames){if(hyp(f.x-e.x,f.y-e.y)<f.r+e.r){e.burnCd=0.2;hitEnemy(e,0.44*lv.fire*ST.dmg,0,-1,40);burst(e.x,e.y,3,'#ff7b29',120);break;}}}
     // 칼날 와이어
-    if(lv.blade&&hook.state==='att'&&e.bladeCd<=0&&!e.dead){
+    if(lv.blade&&hook.state==='att'&&e.bladeCd<=0&&!e.dead&&!e.hidden){
       const ax=hook.x,ay=hook.y,bx=p.x-ax,by=p.y-ay,L2=bx*bx+by*by||1;
       const t=clamp(((e.x-ax)*bx+(e.y-ay)*by)/L2,0,1),qx=ax+bx*t,qy=ay+by*t;
       if(hyp(e.x-qx,e.y-qy)<e.r+14){e.bladeCd=0.15;const sw=Math.min(2,sp/500);hitEnemy(e,0.45*lv.blade*ST.dmg*(0.5+sw),p.vx/(sp||1),p.vy/(sp||1),150);burst(qx,qy,4,'#e6f7ff',200);}
@@ -837,7 +968,7 @@ function update(dt){
 
   // 박치기 판정
   for(const e of enemies){
-    if(e.dead)continue;
+    if(e.dead||e.hidden)continue;
     const pr2=p.r*p.scale,dx=e.x-p.x,dy=e.y-p.y,d=hyp(dx,dy)||1;
     if(d>=pr2+e.r)continue;
     const nx=dx/d,ny=dy/d,spd=hyp(p.vx,p.vy),atk=attacking();
@@ -870,7 +1001,7 @@ function update(dt){
 
   // 총알
   for(const b of bullets){
-    b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
+    if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
     if(b.life<=0||solidAt(b.x,b.y))b.dead=true;
     else if(hyp(b.x-p.x,b.y-p.y)<p.r*p.scale+7){
       b.dead=true;
@@ -987,6 +1118,7 @@ function drawPreview(c,m){
   const g=x.createLinearGradient(0,0,0,c.height);g.addColorStop(0,T.bg[0]);g.addColorStop(0.6,T.bg[1]);g.addColorStop(1,T.bg[2]);x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
   if(G.terr){x.fillStyle=T.ground;x.beginPath();x.moveTo(0,c.height);for(const p of G.terr)x.lineTo(p.x*sx,p.y*sy);x.lineTo(c.width,c.height);x.closePath();x.fill();
     x.strokeStyle=T.groundTop;x.lineWidth=2;x.beginPath();G.terr.forEach((p,i)=>i?x.lineTo(p.x*sx,p.y*sy):x.moveTo(p.x*sx,p.y*sy));x.stroke();}
+  for(const l of (G.lava||[])){x.fillStyle='#ff5a14';x.fillRect(l.x0*sx,l.y*sy,(l.x1-l.x0)*sx,c.height);}
   for(const r of G.rects){x.fillStyle=T.fill;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),Math.max(2,r.h*sy));x.fillStyle=T.top;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),1.5);}
   x.fillStyle='#ff9a1f';x.beginPath();x.arc(m.start[0]*sx,m.start[1]*sy,4,0,7);x.fill();
 }
@@ -1008,6 +1140,18 @@ function drawBg(){
   const T=THEMES[curTheme];
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,T.bg[0]);g.addColorStop(0.6,T.bg[1]);g.addColorStop(1,T.bg[2]);
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(T.kind==='volcano'){
+    // 위로 떠오르는 불씨 + 붉은 지평선 + 화산 실루엣
+    const hz=ctx.createRadialGradient(W*0.5,H*1.05,40,W*0.5,H*1.05,H*0.9);hz.addColorStop(0,'rgba(255,90,20,.35)');hz.addColorStop(1,'rgba(255,60,10,0)');ctx.fillStyle=hz;ctx.fillRect(0,0,W,H);
+    sky.forEach((L,li)=>{
+      const ox=-(cam.x*L.f)*S,base=H-((cam.y-900)*L.f*0.5)*S+40;
+      ctx.fillStyle=T.sky[li];ctx.beginPath();ctx.moveTo(ox+L.pts[0].x*S,H+50);
+      for(const p of L.pts){const x=ox+p.x*S;if(x<-80||x>W+80)continue;ctx.lineTo(x,base-p.h*S*(li?1:1.2));}
+      ctx.lineTo(W+80,H+50);ctx.lineTo(-80,H+50);ctx.closePath();ctx.fill();
+    });
+    for(const st of STARS){const y=((st.y*H*2-time*(20+st.s*25))%(H+20)+H+20)%(H+20);ctx.fillStyle=`rgba(255,${140+60*Math.sin(st.t+time)|0},60,${0.35+0.3*Math.sin(time*3+st.t)})`;ctx.fillRect(st.x*W+Math.sin(time+st.t)*8,y,st.s+0.6,st.s+0.6);}
+    return;
+  }
   if(T.kind==='mountain'){
     for(const st of STARS){ctx.fillStyle=`rgba(255,240,220,${0.25+0.25*Math.sin(time*2+st.t)})`;ctx.fillRect(st.x*W,st.y*H*0.7,st.s,st.s);}
     // 지는 해
@@ -1156,13 +1300,13 @@ function render(){
   const sh=shake+speedFx*speedFx*4+fxHot*3;
   const sx=(Math.random()-0.5)*sh,sy=(Math.random()-0.5)*sh;
   ctx.setTransform(DPR*S,0,0,DPR*S,(-cam.x*S+sx)*DPR,(-cam.y*S+sy)*DPR);
-  drawTerrain();drawRects();drawPads();drawCraters();
+  drawTerrain();drawLava();drawRects();drawPads();drawCraters();
   const p=player;
   // 조준선
   if(state==='play'&&hook.state!=='att'){
     const w=mouseWorld(),dx=w.x-p.x,dy=w.y-p.y,d=hyp(dx,dy)||1,ux=dx/d,uy=dy/d;
     let hit=-1,hitE=false;
-    for(let t=0;t<=ST.range;t+=12){const x=p.x+ux*t,y=p.y+uy*t;if(lv.harpoon&&enemies.some(e=>hyp(e.x-x,e.y-y)<e.r+22)){hit=t;hitE=true;break;}if(solidAt(x,y)){hit=t;break;}}
+    for(let t=0;t<=ST.range;t+=12){const x=p.x+ux*t,y=p.y+uy*t;if(lv.harpoon&&enemies.some(e=>!e.hidden&&hyp(e.x-x,e.y-y)<e.r+22)){hit=t;hitE=true;break;}if(solidAt(x,y)){hit=t;break;}}
     const L=hit<0?ST.range:hit;
     ctx.setLineDash([6,8]);ctx.strokeStyle=hit<0?'rgba(255,255,255,.15)':hitE?'rgba(255,209,102,.6)':'rgba(45,226,198,.45)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+ux*L,p.y+uy*L);ctx.stroke();ctx.setLineDash([]);
@@ -1182,7 +1326,7 @@ function render(){
   }
   for(const e of enemies)(e.boss?drawBoss:drawEnemy)(e);
   drawBoulders();
-  for(const b of bullets){ctx.fillStyle='rgba(94,224,122,.3)';ctx.beginPath();ctx.arc(b.x,b.y,11,0,7);ctx.fill();ctx.fillStyle='#b8ffc8';ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.fill();}
+  for(const b of bullets){ctx.fillStyle=b.lava?'rgba(255,120,30,.35)':'rgba(94,224,122,.3)';ctx.beginPath();ctx.arc(b.x,b.y,b.lava?16:11,0,7);ctx.fill();ctx.fillStyle=b.lava?'#ffd27a':'#b8ffc8';ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.fill();}
   drawPlayer();
   for(const q of parts){ctx.globalAlpha=Math.max(0,q.life/q.max);ctx.fillStyle=q.c;ctx.fillRect(q.x-q.s/2,q.y-q.s/2,q.s,q.s);}ctx.globalAlpha=1;
   for(const r of rings){const t=1-r.life/0.35;ctx.strokeStyle=r.c;ctx.globalAlpha=1-t;ctx.lineWidth=4*(1-t)+1;ctx.beginPath();ctx.arc(r.x,r.y,r.R*(0.3+0.7*t),0,7);ctx.stroke();}ctx.globalAlpha=1;
