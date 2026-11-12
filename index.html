@@ -495,7 +495,7 @@ function killEnemy(e){
   if(Math.random()<0.025)gems.push({x:e.x,y:e.y,vx:0,vy:-200,v:0,heal:true,t:0});
   if(hook.e===e){hook.state='none';hook.e=null;}
 }
-function gainXp(v){xp+=v;while(xp>=xpNext){xp-=xpNext;level++;xpNext=Math.floor(xpNext*1.25+3);pending++;}}
+function gainXp(v){xp+=v;while(xp>=xpNext){xp-=xpNext;level++;xpNext+=2;pending++;}}
 let craters=[],terr0=null;
 function crater(x,y,R2){
   // 경사 지형 위라면 땅을 실제로 살짝 파냄 (깊이 최대 45)
@@ -1006,7 +1006,13 @@ function update(dt){
         const vn=p.vx*nx+p.vy*ny;if(vn>0){p.vx-=1.5*vn*nx;p.vy-=1.5*vn*ny;}p.vy-=150;
         const o=pr2+e.r-d;p.x-=nx*o;p.y-=ny*o;
       }
-      if(wasYank){p.vx*=0.55;p.vy=Math.min(p.vy*0.55,-240);p.attack=Math.max(p.attack,0.35);} // 작살 박치기 후 속도 절반 정도 유지 + 0.35초 박치기 상태 유지
+      if(wasYank){
+        // 반동: 화면이 진행 반대쪽으로 확 튀어서 다음 조준이 어려워짐
+        const s0=hyp(p.vx,p.vy)||1,ux=p.vx/s0,uy=p.vy/s0,side=Math.random()<0.5?-1:1,K=rand(150,200);
+        cam.x+=-ux*K-uy*side*rand(50,90);cam.y+=-uy*K+ux*side*rand(50,90);
+        shake=Math.max(shake,22);hitStop=Math.max(hitStop,0.07);ring(e.x,e.y,70,'#ffd166');
+        p.vx*=0.55;p.vy=Math.min(p.vy*0.55,-240);p.attack=Math.max(p.attack,0.35);
+      } // 작살 박치기 후 속도 절반 정도 유지 + 0.35초 박치기 상태 유지
     }else{
       if(e.hitCd<=0&&p.ramGrace<=0)hurt(e.x,e.y);
       const o=pr2+e.r-d;if(e.boss){p.x-=nx*o;p.y-=ny*o;}else{e.x+=nx*o;e.y+=ny*o;}
