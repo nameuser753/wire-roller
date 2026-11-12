@@ -40,6 +40,12 @@ button.big:hover{filter:brightness(1.1)}
 .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid rgba(255,255,255,.25)}
 .ctrl{margin-bottom:16px!important}
+.cxsec{font-size:18px;font-weight:800;margin:16px 4px 10px;text-align:left}
+.cxgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.cx{background:linear-gradient(160deg,#18213d,#0f1529);border:1px solid #2a3866;border-radius:14px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.cx .top{display:flex;align-items:center;gap:10px}.cx .ic{font-size:30px}.cx .nm{font-size:17px;font-weight:800}
+.cx .tag{font-size:11px;border-radius:6px;padding:2px 7px;align-self:flex-start}
+.cx .lvl{font-size:12.5px;line-height:1.45;opacity:.88}.cx .lvl b{color:#ffd166}
 .stats{font-size:18px;line-height:1.8;margin-bottom:22px}
 </style>
 </head>
@@ -60,6 +66,14 @@ button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid r
   <div class="sub" style="margin-bottom:18px">💡 천천히 부딪히면 내가 다쳐요. <b style="color:#ffb020">빠르게</b> 들이받아야 적이 터집니다!</div>
   <div class="sub" style="margin:0 0 10px;opacity:1;font-weight:700;color:#ffd166">맵을 골라 시작하세요</div>
   <div class="maps" id="maps"></div>
+  <button class="big ghost" id="btnCodex" style="margin-top:18px;font-size:17px;padding:10px 30px">📖 스킬 도감</button>
+</div>
+
+<div id="codex" class="ov hidden" style="justify-content:flex-start;padding-top:28px">
+  <h2 style="margin-bottom:6px">📖 스킬 도감</h2>
+  <div class="sub" style="margin-bottom:14px">레벨업 때 3장 중 1장을 골라요. 액티브는 <b style="color:#ffb020">하나만</b>, 패시브는 <b style="color:#2de2c6">제한 없이</b> 모을 수 있어요.</div>
+  <div id="codexBody" style="max-width:1100px;width:100%"></div>
+  <button class="big" id="btnCodexClose" style="margin:20px 0 10px">닫기</button>
 </div>
 
 <div id="lvup" class="ov hidden">
@@ -360,7 +374,7 @@ const SK={
  chain:{n:'연쇄 질주',k:'박치기로 처치',i:'⛓️',max:5,d:l=>`박치기로 적을 잡을 때마다 속도 +${8*l}%, 위로 튀어올라 다음 적으로 연결. 액티브 쿨타임 ${(0.4*l).toFixed(1)}초 감소 (에어 대시는 1회 충전).`},
  mega:{n:'메가 롤',act:true,k:'Shift',i:'🪨',max:5,d:l=>`${(3+0.6*l).toFixed(1)}초간 2배로 거대화. 닿는 모든 적에게 큰 피해. (쿨 ${cdOf('mega',l).toFixed(1)}초)`},
  spikes:{n:'가시 껍질',k:'패시브',i:'📌',max:5,d:l=>`박치기에 필요한 속도가 낮아지고 박치기 피해 +${20*l}%.`},
- engine:{n:'가속 엔진',k:'패시브',i:'⚙️',max:5,d:l=>`구르기 가속도와 최고 속도가 증가합니다.`},
+ engine:{n:'가속 엔진',k:'패시브',i:'⚙️',max:5,d:l=>`구르기 가속 +${12*l}%, 땅에서 최고 속도 +${Math.round(4.5*l)}km/h.`},
  shell:{n:'강철 껍질',k:'패시브',i:'🛡️',max:5,d:l=>`최대 체력 +1, 체력 2 회복.`},
  wire:{n:'롱 와이어',k:'패시브',i:'🪢',max:3,d:l=>`와이어 사거리 +90.`},
 };
@@ -389,6 +403,7 @@ addEventListener('keydown',e=>{
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(e.code))e.preventDefault();
   if(e.repeat){keys[e.code]=true;return;}
   keys[e.code]=true;
+  if(e.code==='Escape'&&!document.getElementById('codex').classList.contains('hidden')){closeCodex();return;}
   if(state==='levelup'){const n=+e.key;if(n>=1&&n<=3)pickCard(n-1);return;}
   if((e.code==='Escape'||e.code==='KeyP')){if(state==='play')setPause(true);else if(state==='pause')setPause(false);return;}
   if(state!=='play')return;
@@ -1109,6 +1124,23 @@ function showClear(){
   document.getElementById('clear').classList.remove('hidden');
 }
 document.getElementById('btnMenu3').onclick=()=>showMenu();
+function openCodex(){
+  const card=k=>{const s=SK[k],act=s.act;
+    const tag=act?`<span class="tag" style="background:#ffb02022;color:#ffb020;border:1px solid #ffb02066">⚡ 액티브 · ${s.k}</span>`:`<span class="tag" style="background:#2de2c622;color:#2de2c6;border:1px solid #2de2c655">${s.k==='패시브'?'패시브':'패시브 · '+s.k}</span>`;
+    const lv1=s.d(1),lvM=s.d(s.max);
+    return `<div class="cx"><div class="top"><span class="ic">${s.i}</span><div><div class="nm">${s.n}</div><div style="font-size:12px;opacity:.6">최대 Lv ${s.max}</div></div></div>${tag}
+      <div class="lvl"><b>Lv 1</b> ${lv1}</div>${lvM!==lv1?`<div class="lvl"><b>Lv ${s.max}</b> ${lvM}</div>`:''}</div>`;};
+  const acts=Object.keys(SK).filter(k=>SK[k].act),drive=Object.keys(SK).filter(k=>!SK[k].act&&DRIVE.includes(k)),stat=Object.keys(SK).filter(k=>!SK[k].act&&!DRIVE.includes(k));
+  document.getElementById('codexBody').innerHTML=
+    `<div class="cxsec" style="color:#ffb020">⚡ 액티브 스킬 <span style="font-size:13px;opacity:.7;font-weight:400">— Shift로 사용, 하나만 선택</span></div><div class="cxgrid">${acts.map(card).join('')}</div>`+
+    `<div class="cxsec" style="color:#2de2c6">🌀 운전 패시브 <span style="font-size:13px;opacity:.7;font-weight:400">— 움직임과 박치기를 강화</span></div><div class="cxgrid">${drive.map(card).join('')}</div>`+
+    `<div class="cxsec" style="color:#9fb3d9">🛡️ 능력치 패시브</div><div class="cxgrid">${stat.map(card).join('')}</div>`+
+    `<div class="cxsec" style="color:#ff9a9a">👹 보스</div><div class="cxgrid">${MAPS.map(m=>m.boss).filter(k=>k&&BOSSES[k]).map(k=>{const B=BOSSES[k],m=MAPS.find(x=>x.boss===k);return `<div class="cx"><div class="top"><span class="ic">${B.icon}</span><div><div class="nm">${B.name}</div><div style="font-size:12px;opacity:.6">${m?m.emoji+' '+m.name:''} · 체력 ${B.hp}</div></div></div><div class="lvl">${B.hint.replace('💡 ','')}</div></div>`}).join('')}</div>`;
+  document.getElementById('start').classList.add('hidden');document.getElementById('codex').classList.remove('hidden');document.getElementById('codex').scrollTop=0;
+}
+function closeCodex(){document.getElementById('codex').classList.add('hidden');document.getElementById('start').classList.remove('hidden');}
+document.getElementById('btnCodex').onclick=openCodex;
+document.getElementById('btnCodexClose').onclick=closeCodex;
 function showMenu(){state='start';player=null;['over','pause','lvup','clear'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById('start').classList.remove('hidden');}
 document.getElementById('btnRetry').onclick=()=>startGame();
 document.getElementById('btnMenu1').onclick=showMenu;
