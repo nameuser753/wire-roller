@@ -321,7 +321,7 @@ const SK={
  spin:{n:'스핀 대시',act:true,k:'Shift 꾹 → 떼기',i:'🌀',max:5,d:l=>`힘을 모았다가 지금 속도에 더해 폭발적으로 돌진! 돌진 중엔 무조건 박치기 피해. (최대 +${(130+15*l)}km/h, 쿨 ${cdOf('spin',l).toFixed(1)}초)`},
  pound:{n:'지면 강타',act:true,k:'Shift',i:'☄️',max:5,d:l=>`솟구쳤다가 땅에 내리꽂아 거대한 충격파! 공중에선 바로 내리꽂음. 땅이 파여요! (피해 ${4+2*l}, 범위 ${230+50*l}, 쿨 ${cdOf('pound',l).toFixed(1)}초)`},
  dash:{n:'에어 대시',act:true,k:'Shift',i:'💨',max:5,d:l=>`마우스 방향으로 순간 돌격. 공중에서 ${dashMax(l)}회, 땅에 닿으면 충전.`},
- harpoon:{n:'와이어 작살',k:'좌클릭으로 적 조준',i:'🎯',max:5,d:l=>`와이어가 적에게 꽂히고 0.3초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 빠르게 끌려가 들이받습니다. 부딪힌 뒤엔 속도가 절반 정도로 줄어요.`},
+ harpoon:{n:'와이어 작살',k:'좌클릭으로 적 조준',i:'🎯',max:5,d:l=>`와이어가 적에게 꽂히고 0.2초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 빠르게 끌려가 들이받습니다. 부딪힌 뒤엔 속도가 절반 정도로 줄어요.`},
  sling:{n:'슬링샷',k:'와이어를 놓는 순간',i:'🏹',max:5,d:l=>`와이어를 놓을 때 속도 +${8*l}%. 와이어 감는 속도도 빨라짐.`},
  blade:{n:'칼날 와이어',k:'매달린 동안',i:'⚔️',max:5,d:l=>`매달려 스윙하는 동안 와이어 줄에 닿은 적이 베입니다. (초당 ${(3*l).toFixed(0)} 피해)`},
  fire:{n:'화염 궤적',k:'빠르게 움직이기',i:'🔥',max:5,d:l=>`빠르게 움직이면 지나간 자리에 불길이 남아 적을 태웁니다. (초당 ${(2.2*l).toFixed(1)} 피해)`},
@@ -734,14 +734,14 @@ function update(dt){
     const sub=4,stp=3000*dt/sub;
     outer:for(let i=0;i<sub;i++){
       hook.x+=hook.dx*stp;hook.y+=hook.dy*stp;hook.dist+=stp;
-      if(lv.harpoon){for(const e of enemies){if(!e.dead&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=0.3;p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
+      if(lv.harpoon){for(const e of enemies){if(!e.dead&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=0.2;p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
       if(solidAt(hook.x,hook.y)){hook.state='att';hook.len=Math.max(30,hyp(p.x-hook.x,p.y-hook.y));p.pound=false;burst(hook.x,hook.y,6,'#9ef0ff',160);break;}
       if(hook.dist>ST.range){hook.state='back';break;}
     }
   }else if(hook.state==='back'){
     const dx=p.x-hook.x,dy=p.y-hook.y,d=hyp(dx,dy);
     if(d<40)hook.state='none';else{hook.x+=dx/d*4000*dt;hook.y+=dy/d*4000*dt;}
-  }else if(hook.state==='prep'){ // 작살이 꽂힌 뒤 0.3초 동안 줄이 팽팽해지는 준비 시간
+  }else if(hook.state==='prep'){ // 작살이 꽂힌 뒤 0.2초 동안 줄이 팽팽해지는 준비 시간
     const e=hook.e;hook.t-=dt;
     if(!e||e.dead){hook.state='none';hook.e=null;}
     else{hook.x=e.x;hook.y=e.y;
