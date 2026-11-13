@@ -673,7 +673,7 @@ function pickType(){
 const RAGE_MAX=60;
 const BOSSES={
   tank:{name:'철갑 롤러',icon:'⚙️',hp:150,r:58,hint:'💡 장갑은 게이지 100 이상으로 들이받아야 깨져요! 와이어로 속도를 모으세요'},
-  serpent:{name:'용암 뱀',icon:'🐍',hp:160,r:34,hint:'💡 용암이 부글거리는 곳에서 튀어나와요! 뛰어오른 머리를 들이받으세요 (몸통은 안 통해요)'},
+  serpent:{name:'용암 뱀',icon:'🐍',hp:160,r:44,hint:'💡 용암이 부글거리는 곳에서 튀어나와요! 뛰어오른 머리를 들이받으세요 (몸통은 안 통해요)'},
   hawk:{name:'하늘 매',icon:'🦅',hp:200,r:42,hint:'💡 매가 머리 위에서 울부짖으면 몸이 아래로 내리꽂혀요! 섬 위에 있으세요 · 급강하 후 땅에 박힌 매가 약점!'},
   golem:{name:'산사태 골렘',icon:'🗿',hp:190,r:56,hint:'💡 굴러오는 바위를 빠르게 들이받아 5번 되돌려 보내면 골렘이 무너져요!'},
 };
@@ -709,7 +709,7 @@ function bossRam(e,dmg,spd){
     return dmg*1.4;
   }
   if(e.kind==='hawk'){if(e.st==='stuck'){txt(e.x,e.y-e.r-14,'약점!','#ffd166');shake=Math.max(shake,12);return dmg*1.7;}return dmg*0.7;}
-  if(e.kind==='serpent'){txt(e.x,e.y-e.r-14,'머리 명중!','#ffd166');shake=Math.max(shake,10);return dmg*1.3;}
+  if(e.kind==='serpent'){const rest=e.st==='rest';txt(e.x,e.y-e.r-14,rest?'약점 명중!':'머리 명중!','#ffd166');shake=Math.max(shake,rest?14:10);return dmg*(rest?1.8:1.3);}
   if(e.kind==='golem'){
     if(e.phase===1){txt(e.x,e.y-e.r-10,'단단하다!','#c9a27e');return dmg*0.25;}
     return dmg*1.2;
@@ -889,15 +889,22 @@ function updateSerpent(e,dt){
       burst(e.x,L.y,40,'#ff9a3a',520);ring(e.x,L.y,120,'#ff7b29');shake=Math.max(shake,10);
     }
   }else if(e.st==='leap'){
-    const prevVy=e.vy;e.vy+=GRAV*0.9*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
+    const prevVy=e.vy;e.vy+=GRAV*(Math.abs(e.vy)<380?0.3:0.9)*dt;e.x=clamp(e.x+e.vx*dt,lo-60,hi+60);e.y+=e.vy*dt; // 꼭대기에서 잠깐 떠 있음
     if(ph2&&!e.spit&&prevVy<0&&e.vy>=0){ // 꼭대기에서 용암 덩어리 3발
       e.spit=true;const dx=p.x-e.x,dy=p.y-e.y,a=Math.atan2(dy,dx);
       for(const k of[-0.25,0,0.25])bullets.push({x:e.x,y:e.y,vx:Math.cos(a+k)*560,vy:Math.sin(a+k)*560-200,g:900,life:4,lava:true});
     }
     if(e.vy>0&&e.y>L.y+20){
-      e.st='sub';e.hidden=true;e.t=ph2?rand(0.9,1.4):rand(1.3,2.0);e.tx=clamp(p.x+rand(-120,120),lo,hi);
       burst(e.x,L.y,30,'#ff9a3a',420);ring(e.x,L.y,90,'#ff7b29');
+      if(Math.random()<(ph2?0.45:0.6)){ // 지쳐서 머리를 내놓고 쉼 → 들이받을 기회
+        e.st='rest';e.t=ph2?1.1:1.7;e.vx=0;e.vy=0;e.hidden=false;e.y=L.y-20;
+        txt(e.x,L.y-70,'헉헉… 머리 노출!','#ffd166');
+      }else{e.st='sub';e.hidden=true;e.t=ph2?rand(0.9,1.4):rand(1.3,2.0);e.tx=clamp(p.x+rand(-120,120),lo,hi);}
     }
+  }else if(e.st==='rest'){
+    e.y=L.y-38+Math.sin(time*6)*7;e.vx=(p.x>e.x?1:-1)*0.01;e.vy=-0.012;
+    if(Math.random()<0.25)parts.push({x:e.x+rand(-20,20),y:e.y-e.r,vx:rand(-20,20),vy:-rand(40,90),life:.5,max:.5,c:'#fff3a0',s:2});
+    if(e.t<=0){e.st='sub';e.hidden=true;e.t=ph2?0.6:0.9;e.tx=clamp(p.x+rand(-120,120),lo,hi);burst(e.x,L.y,20,'#ff9a3a',300);}
   }
   e.ang=Math.atan2(e.vy||0,e.vx||1);
   e.trail.unshift({x:e.x,y:e.y});if(e.trail.length>140)e.trail.length=140;
