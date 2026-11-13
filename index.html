@@ -909,7 +909,7 @@ function updateSerpent(e,dt){
     if(p.ramGrace>0)break;
     if(sp>=ST.ramMin||p.attack>0||p.mega>0){p.vx=dx/d*Math.max(450,sp*0.6);p.vy=dy/d*Math.max(450,sp*0.6)-200;p.ramGrace=0.4;
       if(e.msgT<=0){txt(q.x,q.y-30,'몸통은 단단해! 머리를 노려!','#ffb36b');e.msgT=1.5;}}
-    else hurt(q.x,q.y);
+    else{p.vx=dx/d*380;p.vy=Math.min(dy/d*380,0)-220;p.ramGrace=0.3;} // 몸통은 데미지 없이 밀어내기만
     break;
   }
 }
