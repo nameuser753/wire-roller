@@ -451,7 +451,7 @@ function collideCircle(o,rad,bounce){
 /* ---------------- 스킬 ---------------- */
 const dashMax=l=>l?1+Math.floor(l/2):0;
 const SK={
- spin:{n:'스핀 대시',act:true,k:'Shift 꾹 → 떼기',i:'🌀',max:5,d:l=>`힘을 모았다가 마우스 방향으로 폭발적으로 돌진! 돌진 중엔 무조건 박치기 피해. (최대 +${(130+15*l)}km/h, 쿨 ${cdOf('spin',l).toFixed(1)}초)`},
+ spin:{n:'스핀 대시',act:true,k:'Shift 꾹 → 떼기',i:'🌀',max:5,d:l=>`힘을 모았다가 마우스 방향으로 폭발적으로 돌진! 돌진 중엔 무조건 박치기 피해. (최대 +${(130+22*l)}km/h, 쿨 ${cdOf('spin',l).toFixed(1)}초)`},
  pound:{n:'지면 강타',act:true,k:'Shift',i:'☄️',max:5,d:l=>`솟구쳤다가 땅에 내리꽂아 거대한 충격파! 공중에선 바로 내리꽂음. 땅이 파여요! (피해 ${4+2*l}, 범위 ${230+50*l}, 쿨 ${cdOf('pound',l).toFixed(1)}초)`},
  dash:{n:'에어 대시',act:true,k:'Shift',i:'💨',max:5,d:l=>`마우스 방향으로 순간 돌격. 공중에서 ${dashMax(l)}회, 땅에 닿으면 충전.`},
  harpoon:{n:'와이어 작살',act:true,k:'Shift (마우스로 적 조준)',i:'🎯',max:5,d:l=>`마우스 방향으로 작살을 쏴서 적에게 꽂히면 ${harpoonDelay(l).toFixed(2)}초 뒤 최소 ${Math.round((950+110*l)/10)}km/h로 끌려가 들이받아요. 맞히면 바로 다시 쓸 수 있고, 빗나가면 2초 동안 사용 불가.`},
@@ -551,7 +551,7 @@ function jump(){const p=player;if(p.grounded||p.coyote>0){p.vy=-900;p.coyote=0;p
 function launchSpin(){
   const p=player,pw=Math.min(1,p.charge/0.7);p.charge=-1;
   const m=mouseWorld(),dx=m.x-p.x,dy=m.y-p.y,dl=hyp(dx,dy)||1,ux=dx/dl,uy=dy/dl; // 마우스 방향으로 돌진
-  const base=Math.max(0,p.vx*ux+p.vy*uy),spd=base*0.9+600+pw*(700+150*lv.spin);
+  const base=Math.max(0,p.vx*ux+p.vy*uy),spd=base*0.9+600+pw*(700+220*lv.spin); // 만렙 풀차지 = 240km/h
   p.vx=ux*spd;p.vy=uy*spd;if(Math.abs(ux)>0.15)p.face=ux<0?-1:1;
   p.grounded=false;p.attack=Math.max(p.attack,0.4+0.06*lv.spin);p.spinFly=0.28; // 잠깐 중력 무시 → 조준한 방향으로 곧게
   ring(p.x,p.y,60+40*pw,'#2de2c6');shake=4+6*pw;
