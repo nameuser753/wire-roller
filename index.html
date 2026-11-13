@@ -911,14 +911,18 @@ function updateSerpent(e,dt){
     }
     if(e.vy>0&&e.y>L.y+20){
       burst(e.x,L.y,30,'#ff9a3a',420);ring(e.x,L.y,90,'#ff7b29');
-      if(Math.random()<(ph2?0.45:0.6)){ // 지쳐서 머리를 내놓고 쉼 → 들이받을 기회
-        e.st='rest';e.t=ph2?1.1:1.7;e.vx=0;e.vy=0;e.hidden=false;e.y=L.y-20;
-        txt(e.x,L.y-70,'헉헉… 머리 노출!','#ffd166');
+      if(Math.random()<(ph2?0.45:0.6)){ // 머리를 내밀고 작은 용암 탄을 흩뿌림 (머리가 드러나 있어 들이받을 기회)
+        e.st='rest';e.t=ph2?1.4:1.8;e.vx=0;e.vy=0;e.hidden=false;e.y=L.y-20;e.sprayT=0.3;e.sprayA=0;
+        txt(e.x,L.y-70,'🔥 용암 탄 난사!','#ffb36b');
       }else{e.st='sub';e.hidden=true;e.t=ph2?rand(0.9,1.4):rand(1.3,2.0);e.tx=clamp(p.x+rand(-120,120),lo,hi);}
     }
   }else if(e.st==='rest'){
     e.y=L.y-38+Math.sin(time*6)*7;e.vx=(p.x>e.x?1:-1)*0.01;e.vy=-0.012;
-    if(Math.random()<0.25)parts.push({x:e.x+rand(-20,20),y:e.y-e.r,vx:rand(-20,20),vy:-rand(40,90),life:.5,max:.5,c:'#fff3a0',s:2});
+    e.sprayT-=dt;
+    if(e.sprayT<=0){e.sprayT=ph2?0.2:0.28;e.sprayA+=0.9;const n=ph2?3:2;
+      for(let k=0;k<n;k++){const a=-Math.PI/2+Math.sin(e.sprayA+k*2.1)*1.15,sp=rand(520,760);
+        bullets.push({x:e.x,y:e.y-e.r*0.6,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,g:1100,life:3,lava:true,small:true});}
+      burst(e.x,e.y-e.r*0.6,6,'#ffb36b',160);}
     if(e.t<=0){e.st='sub';e.hidden=true;e.t=ph2?0.6:0.9;e.tx=clamp(p.x+rand(-120,120),lo,hi);burst(e.x,L.y,20,'#ff9a3a',300);}
   }
   e.ang=Math.atan2(e.vy||0,e.vx||1);
@@ -1249,7 +1253,7 @@ function update(dt){
   for(const b of bullets){
     if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
     if(b.life<=0||solidAt(b.x,b.y))b.dead=true;
-    else if(hyp(b.x-p.x,b.y-p.y)<p.r*p.scale+7){
+    else if(hyp(b.x-p.x,b.y-p.y)<p.r*p.scale+(b.small?3:7)){
       b.dead=true;
       if(attacking()||hyp(p.vx,p.vy)>=ST.ramMin){burst(b.x,b.y,8,'#5ee07a',200);txt(b.x,b.y,'튕김!','#5ee07a');}
       else hurt(b.x,b.y);
@@ -1760,7 +1764,7 @@ function render(){
   }
   for(const e of enemies)(e.boss?drawBoss:drawEnemy)(e);
   drawBoulders();
-  for(const b of bullets){if(b.feather){ctx.save();ctx.translate(b.x,b.y);ctx.rotate(Math.atan2(b.vy,b.vx));ctx.fillStyle='#e8eeff';ctx.beginPath();ctx.ellipse(0,0,16,5,0,0,7);ctx.fill();ctx.strokeStyle='#7f90c0';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-16,0);ctx.lineTo(16,0);ctx.stroke();ctx.restore();continue;}ctx.fillStyle=b.lava?'rgba(255,120,30,.35)':'rgba(94,224,122,.3)';ctx.beginPath();ctx.arc(b.x,b.y,b.lava?16:11,0,7);ctx.fill();ctx.fillStyle=b.lava?'#ffd27a':'#b8ffc8';ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.fill();}
+  for(const b of bullets){if(b.feather){ctx.save();ctx.translate(b.x,b.y);ctx.rotate(Math.atan2(b.vy,b.vx));ctx.fillStyle='#e8eeff';ctx.beginPath();ctx.ellipse(0,0,16,5,0,0,7);ctx.fill();ctx.strokeStyle='#7f90c0';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-16,0);ctx.lineTo(16,0);ctx.stroke();ctx.restore();continue;}ctx.fillStyle=b.lava?'rgba(255,120,30,.35)':'rgba(94,224,122,.3)';ctx.beginPath();ctx.arc(b.x,b.y,b.small?9:b.lava?16:11,0,7);ctx.fill();ctx.fillStyle=b.lava?'#ffd27a':'#b8ffc8';ctx.beginPath();ctx.arc(b.x,b.y,b.small?3.5:6,0,7);ctx.fill();}
   drawPlayer();
   for(const q of parts){ctx.globalAlpha=Math.max(0,q.life/q.max);ctx.fillStyle=q.c;ctx.fillRect(q.x-q.s/2,q.y-q.s/2,q.s,q.s);}ctx.globalAlpha=1;
   for(const r of rings){const t=1-r.life/0.35;ctx.strokeStyle=r.c;ctx.globalAlpha=1-t;ctx.lineWidth=4*(1-t)+1;ctx.beginPath();ctx.arc(r.x,r.y,r.R*(0.3+0.7*t),0,7);ctx.stroke();}ctx.globalAlpha=1;
