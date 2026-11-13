@@ -1417,7 +1417,7 @@ function startGame(m,carry){br=null;if(m)MAP=m;
   if(NET.host)NET.send({t:'start',map:MAP.id,carry:!!carry});
   loadMap(MAP);reset();if(NET.guest)player.x+=70;
   if(carry){lv=carry.lv;calcST();level=carry.level;xp=carry.xp;xpNext=carry.xpNext;kills=carry.kills;time=carry.time;stageNo=carry.stageNo;player.maxHp=carry.maxHp;player.hp=carry.maxHp;player.dashC=dashMax(lv.dash);}
-  state='play';['start','over','pause','lvup','clear','mapWin'].forEach(id=>document.getElementById(id).classList.add('hidden'));}
+  state='play';['start','over','pause','lvup','clear','mapWin','netWin','rushWin','testWin','skinWin','codex'].forEach(id=>document.getElementById(id).classList.add('hidden'));}
 function showClear(){if(NET.host)NET.send({t:'clear'});
   document.getElementById('clearTitle').textContent=pk?'COURSE CLEAR!':'STAGE CLEAR!';
   if(pk){state='clear';const b=pkBest();
