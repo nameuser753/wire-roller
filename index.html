@@ -661,6 +661,7 @@ function spawnEnemy(type){
   }
 }
 function pickType(){
+  if(abyss)return Math.random()<(time>20?0.7:0.85)?'bat':'spitter'; // 하늘 섬: 지상 몹 없이 비행 몹만
   const w=[['crawler',abyss?2.5:5],['bat',time>10?3.5:1],['spitter',time>40?2:0],['brute',time>65?1.2+time/150:0]];
   let s=0;for(const a of w)s+=a[1];let r=Math.random()*s;for(const a of w){r-=a[1];if(r<=0)return a[0];}return 'crawler';
 }
