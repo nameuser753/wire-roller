@@ -546,9 +546,10 @@ function shockwave(x,y,R,dmg,c){
   for(const e of enemies){if(e.hidden)continue;const dx=e.x-x,dy=e.y-y,d=hyp(dx,dy)||1;if(d<R+e.r)hitEnemy(e,dmg,dx/d,dy/d,520);}
   for(const b of bullets){if(hyp(b.x-x,b.y-y)<R)b.dead=true;}
 }
+let hurtFx=0,lostHeart=null;
 function hurt(sx,sy){
   const p=player;if(p.inv>0||p.mega>0)return;
-  p.hp--;p.inv=1.1;shake=12;
+  p.hp--;p.inv=1.1;shake=12;hurtFx=0.7;lostHeart={i:p.hp,t:0.7};
   const dx=p.x-sx,dy=p.y-sy,d=hyp(dx,dy)||1;p.vx=dx/d*420;p.vy=dy/d*300-250;
   burst(p.x,p.y,18,'#ff4d6d',300);txt(p.x,p.y-25,'-1','#ff4d6d');
   if(p.hp<=0)gameOver();
@@ -852,7 +853,7 @@ function update(dt){
   const p=player,attacking=()=>p.attack>0||p.mega>0||p.pound||hook.state==='yank';
   const left=keys.KeyA||keys.ArrowLeft,right=keys.KeyD||keys.ArrowRight,dir=(right?1:0)-(left?1:0);
   if(dir)p.face=dir;
-  p.inv=Math.max(0,p.inv-dt);p.ramGrace=Math.max(0,(p.ramGrace||0)-dt);p.attack=Math.max(0,p.attack-dt);p.qCd=Math.max(0,p.qCd-dt);if(p.poundDelay>0){p.poundDelay-=dt;if(p.poundDelay<=0)startPound();}bounceCd=Math.max(0,bounceCd-dt);
+  p.inv=Math.max(0,p.inv-dt);hurtFx=Math.max(0,hurtFx-dt);if(lostHeart){lostHeart.t-=dt;if(lostHeart.t<=0)lostHeart=null;}p.ramGrace=Math.max(0,(p.ramGrace||0)-dt);p.attack=Math.max(0,p.attack-dt);p.qCd=Math.max(0,p.qCd-dt);if(p.poundDelay>0){p.poundDelay-=dt;if(p.poundDelay<=0)startPound();}bounceCd=Math.max(0,bounceCd-dt);
   if(p.mega>0){p.mega-=dt;}
   p.scale+=((p.mega>0?2:1)-p.scale)*Math.min(1,dt*8);
   const pr=p.r*p.scale;
@@ -1465,8 +1466,10 @@ function drawHUD(){
   ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,8);
   const xg=ctx.createLinearGradient(0,0,W,0);xg.addColorStop(0,'#52b8ff');xg.addColorStop(1,'#2de2c6');ctx.fillStyle=xg;ctx.fillRect(0,0,W*(xp/xpNext),8);
   ctx.textAlign='left';ctx.font='bold 26px system-ui,sans-serif';
-  for(let i=0;i<p.maxHp;i++){ctx.fillStyle=i<p.hp?'#ff4d6d':'rgba(255,255,255,.18)';ctx.fillText('♥',18+i*28,46);}
-  ctx.font='bold 16px system-ui,sans-serif';ctx.fillStyle='#ffd166';ctx.fillText(`LV ${level}`,18,72);
+  ctx.font='bold 18px system-ui,sans-serif';ctx.fillStyle='#ffd166';ctx.fillText(`LV ${level}`,18,40);
+  // 피격 시 화면 가장자리 붉은 플래시 (짧게)
+  if(hurtFx>0){const a=Math.min(1,hurtFx/0.7);const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35,W/2,H/2,Math.max(W,H)*0.75);
+    vg.addColorStop(0,'rgba(255,30,60,0)');vg.addColorStop(1,`rgba(255,30,60,${0.55*a})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);}
   ctx.fillStyle='#e8f0ff';ctx.textAlign='center';ctx.font='bold 22px system-ui,sans-serif';
   const m=Math.floor(time/60),s=Math.floor(time%60);ctx.fillText(`${m}:${String(s).padStart(2,'0')}`,W/2,38);
   ctx.font='14px system-ui,sans-serif';ctx.fillStyle='rgba(232,240,255,.7)';ctx.fillText(`처치 ${kills}`,W/2,58);
@@ -1527,6 +1530,19 @@ function drawHUD(){
     const bw=Math.min(560,W*0.5),bx=W/2-bw/2,by=H-34,bh=14;
     // 배경
     ctx.fillStyle='rgba(8,10,22,.92)';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx-14,by-44,bw+28,bh+56,14):ctx.rect(bx-14,by-44,bw+28,bh+56);ctx.fill();
+    // 체력 하트 (속도 게이지 바로 위)
+    { const now=performance.now(),low=p.hp<=1,hs=30,hx0=W/2-(p.maxHp-1)*hs/2,hy=by-56;
+      const shk=hurtFx>0?(Math.random()-0.5)*14*hurtFx:0;
+      ctx.textAlign='center';ctx.font='bold 30px system-ui,sans-serif';
+      for(let i=0;i<p.maxHp;i++){const x=hx0+i*hs+shk;
+        if(i<p.hp){const pu=low?1+0.18*Math.max(0,Math.sin(now/130)):1;
+          ctx.save();ctx.translate(x,hy);ctx.scale(pu,pu);ctx.shadowColor='#ff2d55';ctx.shadowBlur=low?18:8;ctx.fillStyle='#ff4d6d';ctx.fillText('♥',0,10);ctx.restore();}
+        else{ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillText('♡',x,hy+10);}
+      }
+      if(lostHeart&&lostHeart.i<p.maxHp){const k=1-lostHeart.t/0.7,x=hx0+lostHeart.i*hs;
+        ctx.save();ctx.globalAlpha=1-k;ctx.translate(x,hy-k*26);ctx.scale(1+k*1.4,1+k*1.4);ctx.fillStyle='#fff';ctx.fillText('💔',0,10);ctx.restore();}
+      if(low){ctx.font='bold 12px system-ui,sans-serif';ctx.fillStyle=`rgba(255,120,140,${0.6+0.4*Math.sin(now/130)})`;ctx.textAlign='left';ctx.fillText('위험!',hx0+(p.maxHp-1)*hs+hs+10,hy+6);}
+    }
     ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(bx,by,bw,bh);
     const g=ctx.createLinearGradient(bx,0,bx+bw,0);g.addColorStop(0,'#52b8ff');g.addColorStop(0.3,'#2de2c6');g.addColorStop(0.55,'#ffb020');g.addColorStop(0.8,'#ff5e3a');g.addColorStop(1,'#ff2d6b');
     ctx.save();ctx.beginPath();ctx.rect(bx,by,bw*speedDisp,bh);ctx.clip();ctx.fillStyle=g;ctx.fillRect(bx,by,bw,bh);ctx.restore();
