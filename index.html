@@ -693,12 +693,15 @@ function updateBoulders(dt){
     const d=hyp(b.x-p.x,b.y-p.y);
     if(!b.ref&&d<b.r+p.r*p.scale){
       const sp=hyp(p.vx,p.vy);
-      if(sp>=800||p.attack>0||p.mega>0||p.pound){
+      const air=!p.grounded;
+      if(sp>=800||p.attack>0||p.mega>0||p.pound||air){
         const tx=boss?boss.x:b.x,ty=boss?boss.y:b.y-200,dd=hyp(tx-b.x,ty-b.y)||1;
         b.vx=(tx-b.x)/dd*1150;b.vy=(ty-b.y)/dd*1150-260;b.ref=true;b.life=4;
         shake=Math.max(shake,8);hitStop=Math.max(hitStop,0.05);txt(b.x,b.y-30,'반사!','#ffd166');burst(b.x,b.y,16,'#ffd166',300);
         const vn=(p.vx*(b.x-p.x)+p.vy*(b.y-p.y))/(d||1);if(vn>0){p.vx*=0.7;p.vy*=0.7;}
-      }else{hurt(b.x,b.y);}
+        if(air&&sp<800){p.vy=Math.min(p.vy,-560);} // 점프 패링: 살짝 튕겨 오름
+        p.ramGrace=Math.max(p.ramGrace,0.5);
+      }else if(p.ramGrace<=0){hurt(b.x,b.y);}
     }
     if(b.ref){
       if(boss&&!boss.dead&&hyp(boss.x-b.x,boss.y-b.y)<boss.r+b.r){
