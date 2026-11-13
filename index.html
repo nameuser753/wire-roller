@@ -448,7 +448,7 @@ const SK={
  chain:{n:'연쇄 질주',k:'박치기로 처치',i:'⛓️',max:5,d:l=>`박치기로 적을 잡을 때마다 속도 +${8*l}%, 위로 튀어올라 다음 적으로 연결. 액티브 쿨타임 ${(0.4*l).toFixed(1)}초 감소 (에어 대시는 1회 충전).`},
  mega:{n:'메가 롤',act:true,k:'Shift',i:'🪨',max:5,d:l=>`${(3+0.6*l).toFixed(1)}초간 2배로 거대화. 닿는 모든 적에게 큰 피해. (쿨 ${cdOf('mega',l).toFixed(1)}초)`},
  spikes:{n:'가시 껍질',k:'패시브',i:'📌',max:5,d:l=>`박치기에 필요한 속도가 낮아지고 박치기 피해 +${20*l}%.`},
- engine:{n:'가속 엔진',k:'패시브',i:'⚙️',max:5,d:l=>`구르기 가속 +${12*l}%, 땅에서 최고 속도 +${Math.round(4.5*l)}km/h.`},
+ engine:{n:'가속 엔진',k:'패시브',i:'⚙️',max:5,d:l=>`구르기 가속 +${12*l}%, 땅에서 최고 속도 +${Math.round(100*l/3)}km/h (3레벨마다 +100).`},
  shell:{n:'강철 껍질',k:'패시브',i:'🛡️',max:5,d:l=>`최대 체력 +1, 체력 2 회복.`},
  wire:{n:'롱 와이어',k:'패시브',i:'🪢',max:3,d:l=>`와이어 사거리 +90.`},
 };
@@ -458,7 +458,7 @@ const harpoonDelay=l=>Math.max(0.05,0.35-0.06*l); // 꽂힌 뒤 끌려가기까�
 const cdOf=(k,l)=>k==='harpoon'?2:k==='spin'?2.6-0.25*l:k==='pound'?4.5-0.4*l:k==='dash'?0.35:k==='mega'?10-1.2*l:0;
 const activeSkill=()=>ACTS.find(k=>lv&&lv[k]>0)||null;
 let lv,ST;
-function calcST(){ST={accel:1500+180*lv.engine,maxRun:470+45*lv.engine,air:750,ramMin:330-32*lv.spikes,dmg:1+0.2*lv.spikes,magnet:130,range:520+90*lv.wire,reel:520+70*lv.sling};}
+function calcST(){ST={accel:1500+180*lv.engine,maxRun:470+1000/3*lv.engine,air:750,ramMin:330-32*lv.spikes,dmg:1+0.2*lv.spikes,magnet:130,range:520+90*lv.wire,reel:520+70*lv.sling};}
 
 /* ---------------- 상태 ---------------- */
 let pk=null; // 파쿠르 진행 상태 {cp, falls, done}
