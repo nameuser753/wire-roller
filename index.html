@@ -267,7 +267,7 @@ function mapGeom(m){
   const r=[[-300,-400,w+600,440],[-300,-400,340,2600],[w-40,-400,340,2600]];if(!m.parkour&&!m.abyss)r.push(tp?[-300,1720,w+600,400]:[-300,m.floor,w+600,400]);
   let t=null;
   if(tp){t=tp.map(p=>({x:p[0],y:p[1]}));t.unshift({x:-400,y:t[0].y});t.push({x:Math.max(w+400,t[t.length-1].x+50),y:t[t.length-1].y});}
-  return m._g={rects:r.concat(rs).map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]})),terr:t,w,lava:lv.map(a=>({x0:a[0],x1:a[1],y:a[2],base:a[2]}))};
+  return m._g={rects:r.concat(rs).map((a,i)=>({x:a[0],y:a[1],w:a[2],h:a[3],bound:i<3})),terr:t,w,lava:lv.map(a=>({x0:a[0],x1:a[1],y:a[2],base:a[2]}))};
 }
 function groundYOf(t,x,fl){
   if(!t)return fl;
@@ -389,6 +389,7 @@ function drawPads(){
     ctx.restore();}
 }
 
+function boundAt(x,y){for(const r of rects)if(r.bound&&x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h)return true;return false;}
 function solidAt(x,y){if(terr&&y>groundY(x))return true;for(const r of rects)if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h)return true;return false;}
 function segClosest(a,b,x,y){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy),0,1);return{x:a.x+dx*t,y:a.y+dy*t};}
 function solidCircle(x,y,rad){
@@ -1067,6 +1068,7 @@ function update(dt){
       hook.x+=hook.dx*stp;hook.y+=hook.dy*stp;hook.dist+=stp;
       if(hook.harpoon){for(const e of enemies){if(!e.dead&&!e.hidden&&hyp(e.x-hook.x,e.y-hook.y)<e.r+22){hook.state='prep';hook.e=e;hook.t=harpoonDelay(lv.harpoon);p.pound=false;burst(hook.x,hook.y,8,'#ffd166',200);break outer;}}}
       if(hook.harpoon&&solidAt(hook.x,hook.y)){hook.state='back';harpoonMiss();break;}
+      if(boundAt(hook.x,hook.y)){hook.state='back';break;} // 맵 끝 벽·천장엔 와이어가 안 붙음
       if(solidAt(hook.x,hook.y)){hook.state='att';hook.len=Math.max(30,hyp(p.x-hook.x,p.y-hook.y));p.pound=false;burst(hook.x,hook.y,6,'#9ef0ff',160);break;}
       if(hook.dist>ST.range){hook.state='back';if(hook.harpoon)harpoonMiss();break;}
     }
@@ -1431,7 +1433,7 @@ function drawPreview(c,m){
   if(G.terr){x.fillStyle=T.ground;x.beginPath();x.moveTo(0,c.height);for(const p of G.terr)x.lineTo(p.x*sx,p.y*sy);x.lineTo(c.width,c.height);x.closePath();x.fill();
     x.strokeStyle=T.groundTop;x.lineWidth=2;x.beginPath();G.terr.forEach((p,i)=>i?x.lineTo(p.x*sx,p.y*sy):x.moveTo(p.x*sx,p.y*sy));x.stroke();}
   for(const l of (G.lava||[])){x.fillStyle='#ff5a14';x.fillRect(l.x0*sx,l.y*sy,(l.x1-l.x0)*sx,c.height);}
-  for(const r of G.rects){x.fillStyle=T.fill;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),Math.max(2,r.h*sy));x.fillStyle=T.top;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),1.5);}
+  for(const r of G.rects){if(r.bound)continue;x.fillStyle=T.fill;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),Math.max(2,r.h*sy));x.fillStyle=T.top;x.fillRect(r.x*sx,r.y*sy,Math.max(2,r.w*sx),1.5);}
   x.fillStyle='#ff9a1f';x.beginPath();x.arc(m.start[0]*sx,m.start[1]*sy,4,0,7);x.fill();
 }
 (function buildMapSelect(){
@@ -1537,6 +1539,7 @@ function drawRects(){
   const T=THEMES[curTheme];
   const vx=cam.x,vy=cam.y,vw=W/S,vh=H/S;
   for(const r of rects){
+    if(r.bound)continue; // 경계는 안 보이게
     if(r.x>vx+vw||r.x+r.w<vx||r.y>vy+vh||r.y+r.h<vy)continue;
     if(r.arena){const a=0.35+0.2*Math.sin(performance.now()/120);ctx.fillStyle=`rgba(255,50,90,${a})`;ctx.fillRect(r.x,r.y,r.w,r.h);ctx.fillStyle='rgba(255,180,200,.8)';ctx.fillRect(r.x+r.w/2-2,r.y,4,r.h);continue;}
     ctx.fillStyle=T.fill;ctx.fillRect(r.x,r.y,r.w,r.h);
