@@ -38,9 +38,9 @@ button.big:hover{filter:brightness(1.1)}
 .mapcard .nm{font-size:19px;font-weight:800;padding:0 4px}
 .mapcard .ds{font-size:13px;opacity:.8;line-height:1.45;padding:4px 4px 0}
 .skins{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:1000px;margin-bottom:16px}
-.skin{width:96px;background:linear-gradient(160deg,#18213d,#0f1529);border:2px solid #2a3866;border-radius:14px;padding:6px 4px 8px;cursor:pointer;transition:transform .12s,border-color .12s;text-align:center}
+.skin{width:150px;background:linear-gradient(160deg,#18213d,#0f1529);border:2px solid #2a3866;border-radius:14px;padding:6px 4px 8px;cursor:pointer;transition:transform .12s,border-color .12s;text-align:center}
 .skin:hover{transform:translateY(-4px)}.skin.on{border-color:#ffd166;box-shadow:0 0 16px rgba(255,209,102,.35)}
-.skin canvas{display:block;margin:0 auto 2px;position:static;width:80px;height:62px}.skin .nm{font-size:12.5px;font-weight:700}
+.skin canvas{display:block;margin:0 auto 4px;position:static;width:120px;height:93px}.skin .nm{font-size:15px!important}.skin .nm{font-size:12.5px;font-weight:700}
 .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid rgba(255,255,255,.25)}
 .ctrl{margin-bottom:16px!important}
@@ -68,13 +68,20 @@ button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid r
     <b>Esc / P</b><span>일시정지</span>
   </div>
   <div class="sub" style="margin-bottom:18px">💡 천천히 부딪히면 내가 다쳐요. <b style="color:#ffb020">빠르게</b> 들이받아야 적이 터집니다!</div>
-  <div class="sub" style="margin:0 0 8px;opacity:1;font-weight:700;color:#ffd166">스킨 고르기</div>
-  <div class="skins" id="skins"></div>
   <div class="sub" style="margin:0 0 10px;opacity:1;font-weight:700;color:#ffd166">맵을 골라 시작하세요</div>
   <div class="maps" id="maps"></div>
-  <button class="big ghost" id="btnCodex" style="margin-top:18px;font-size:17px;padding:10px 30px">📖 스킬 도감</button>
+  <div class="btns" style="margin-top:18px">
+    <button class="big ghost" id="btnSkin" style="font-size:17px;padding:8px 26px;display:flex;align-items:center;gap:8px"><canvas id="skinIcon" width="34" height="34" style="width:34px;height:34px;position:static;display:block"></canvas>스킨 <span id="skinName" style="opacity:.75;font-weight:500;font-size:14px"></span></button>
+    <button class="big ghost" id="btnCodex" style="font-size:17px;padding:10px 30px">📖 스킬 도감</button>
+  </div>
 </div>
 
+<div id="skinWin" class="ov hidden">
+  <h2 style="margin-bottom:6px">🎨 스킨</h2>
+  <div class="sub" style="margin-bottom:16px">마음에 드는 공을 골라요. 고른 스킨은 저장돼요.</div>
+  <div class="skins" id="skins" style="max-width:720px"></div>
+  <button class="big" id="btnSkinClose" style="margin:14px 0 10px">확인</button>
+</div>
 <div id="codex" class="ov hidden" style="justify-content:flex-start;padding-top:28px">
   <h2 style="margin-bottom:6px">📖 스킬 도감</h2>
   <div class="sub" style="margin-bottom:14px">레벨업 때 3장 중 1장을 골라요. 액티브는 <b style="color:#ffb020">하나만</b>, 패시브는 <b style="color:#2de2c6">제한 없이</b> 모을 수 있어요.</div>
@@ -412,6 +419,7 @@ addEventListener('keydown',e=>{
   if(e.repeat){keys[e.code]=true;return;}
   keys[e.code]=true;
   if(e.code==='Escape'&&!document.getElementById('codex').classList.contains('hidden')){closeCodex();return;}
+  if(e.code==='Escape'&&!document.getElementById('skinWin').classList.contains('hidden')){closeSkins();return;}
   if(state==='levelup'){const n=+e.key;if(n>=1&&n<=3)pickCard(n-1);return;}
   if((e.code==='Escape'||e.code==='KeyP')){if(state==='play')setPause(true);else if(state==='pause')setPause(false);return;}
   if(state!=='play')return;
@@ -1307,19 +1315,24 @@ function drawBall(c,x,y,r,ang,face,S){
   c.fillStyle=S.iris;c.beginPath();c.ellipse(ex+face*r*0.1,ey,r*0.16,r*0.2,0,0,7);c.fill();
   c.fillStyle='#fff';c.beginPath();c.arc(ex+face*r*0.16,ey-r*0.08,r*0.06,0,7);c.fill();
 }
-function drawSkinCard(cv,S,ang){const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);
+function drawSkinCard(cv,S,ang){const c=cv.getContext('2d');c.setTransform(cv.width/80,0,0,cv.width/80,0,0);c.clearRect(0,0,80,62);
   const sc=S.scarf;c.lineCap='round';for(let i=0;i<6;i++){c.strokeStyle=`rgba(${sc[0]},${sc[1]},${sc[2]},${0.15+i*0.13})`;c.lineWidth=2+i*1.6;c.beginPath();c.moveTo(14+i*6,30+Math.sin(ang*3+i)*3);c.lineTo(20+i*6,30+Math.sin(ang*3+i+1)*3);c.stroke();}
-  drawBall(c,cv.width/2+6,cv.height/2+4,22,ang,1,S);}
+  drawBall(c,46,35,22,ang,1,S);}
 function buildSkins(){
   const box=document.getElementById('skins');if(!box)return;box.innerHTML='';const cvs=[];
   SKINS.forEach((S,i)=>{const d=document.createElement('div');d.className='skin'+(i===skinIdx?' on':'');
-    const cv=document.createElement('canvas');cv.width=80;cv.height=62;d.appendChild(cv);
+    const cv=document.createElement('canvas');cv.width=120;cv.height=93;d.appendChild(cv);
     const nm=document.createElement('div');nm.className='nm';nm.textContent=S.n;d.appendChild(nm);
-    d.onclick=()=>{skinIdx=i;try{localStorage.setItem('wr_skin',S.id);}catch(e){}[...box.children].forEach((el,j)=>el.classList.toggle('on',j===i));};
+    d.onclick=()=>{skinIdx=i;try{localStorage.setItem('wr_skin',S.id);}catch(e){}[...box.children].forEach((el,j)=>el.classList.toggle('on',j===i));updateSkinBtn();};
+    d.ondblclick=closeSkins;
     box.appendChild(d);cvs.push(cv);});
-  let a=0;const st=document.getElementById('start');(function spin(){if(!st.classList.contains('hidden')){a+=0.05;cvs.forEach((cv,i)=>drawSkinCard(cv,SKINS[i],i===skinIdx?a:0.3));requestAnimationFrame(spin);}else setTimeout(spin,300);})();
+  let a=0;const st=document.getElementById('skinWin');(function spin(){if(!st.classList.contains('hidden')){a+=0.05;cvs.forEach((cv,i)=>drawSkinCard(cv,SKINS[i],i===skinIdx?a:0.3));requestAnimationFrame(spin);}else setTimeout(spin,300);})();
 }
-buildSkins();
+function updateSkinBtn(){const cv=document.getElementById('skinIcon'),c=cv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,34,34);drawBall(c,17,17,14,0.3,1,curSkin());document.getElementById('skinName').textContent=curSkin().n;}
+function openSkins(){document.getElementById('start').classList.add('hidden');document.getElementById('skinWin').classList.remove('hidden');}
+function closeSkins(){document.getElementById('skinWin').classList.add('hidden');document.getElementById('start').classList.remove('hidden');}
+document.getElementById('btnSkin').onclick=openSkins;document.getElementById('btnSkinClose').onclick=closeSkins;
+buildSkins();updateSkinBtn();
 function drawPlayer(){
   const p=player,r=p.r*p.scale;
   // 스카프
