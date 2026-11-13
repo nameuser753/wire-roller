@@ -455,7 +455,7 @@ const SK={
 const ACTS=['pound','mega','spin','dash','harpoon'];          // Shift 액티브 (하나만 선택)
 const DRIVE=['sling','blade','fire','bounce','chain']; // 운전 패시브
 const harpoonDelay=l=>Math.max(0.05,0.35-0.06*l); // 꽂힌 뒤 끌려가기까지 딜레이 (레벨마다 감소)
-const cdOf=(k,l)=>k==='harpoon'?2:k==='spin'?2.6-0.25*l:k==='pound'?5.5-0.5*l:k==='dash'?0.35:k==='mega'?10-1.2*l:0;
+const cdOf=(k,l)=>k==='harpoon'?2:k==='spin'?2.6-0.25*l:k==='pound'?4.5-0.4*l:k==='dash'?0.35:k==='mega'?10-1.2*l:0;
 const activeSkill=()=>ACTS.find(k=>lv&&lv[k]>0)||null;
 let lv,ST;
 function calcST(){ST={accel:1500+180*lv.engine,maxRun:470+45*lv.engine,air:750,ramMin:330-32*lv.spikes,dmg:1+0.2*lv.spikes,magnet:130,range:520+90*lv.wire,reel:520+70*lv.sling};}
@@ -538,7 +538,7 @@ function launchSpin(){
   const m=mouseWorld(),dx=m.x-p.x,dy=m.y-p.y,dl=hyp(dx,dy)||1,ux=dx/dl,uy=dy/dl; // 마우스 방향으로 돌진
   const base=Math.max(0,p.vx*ux+p.vy*uy),spd=base*0.9+600+pw*(700+150*lv.spin);
   p.vx=ux*spd;p.vy=uy*spd;if(Math.abs(ux)>0.15)p.face=ux<0?-1:1;
-  p.grounded=false;p.attack=Math.max(p.attack,0.4+0.06*lv.spin);
+  p.grounded=false;p.attack=Math.max(p.attack,0.4+0.06*lv.spin);p.spinFly=0.28; // 잠깐 중력 무시 → 조준한 방향으로 곧게
   ring(p.x,p.y,60+40*pw,'#2de2c6');shake=4+6*pw;
 }
 function fireHook(){
@@ -1057,7 +1057,7 @@ function update(dt){
     if(dir&&(Math.abs(p.vx)<ST.maxRun||Math.sign(p.vx)!==dir))p.vx+=dir*ST.air*dt;
   }
   if(p.charge>=0){p.charge+=dt;p.vx*=Math.exp(-9*dt);p.spinV=20+Math.min(1,p.charge/0.7)*40;if(Math.random()<0.5)parts.push({x:p.x-p.face*pr,y:p.y+pr*0.7,vx:-p.face*rand(80,200),vy:rand(-120,-20),life:.3,max:.3,c:'#cfe',s:2});}
-  p.vy+=GRAV*dt;
+  if(p.spinFly>0){p.spinFly-=dt;if(Math.random()<0.8)parts.push({x:p.x+rand(-6,6),y:p.y+rand(-6,6),vx:-p.vx*0.15,vy:-p.vy*0.15,life:.3,max:.3,c:'#2de2c6',s:3});}else p.vy+=GRAV*dt;
   if(p.pound)p.vy=Math.max(p.vy,1500);
   p.vx=clamp(p.vx,-2400,2400);p.vy=clamp(p.vy,-2400,2400);
 
