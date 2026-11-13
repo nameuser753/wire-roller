@@ -48,6 +48,7 @@ button.big:hover{filter:brightness(1.1)}
 button.big:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
 .menu{display:flex;flex-direction:column;gap:10px;width:300px}
 .menu button.big{width:100%;font-size:18px;padding:11px 20px;display:flex;align-items:center;justify-content:center;gap:8px}
+#testWin select{font:inherit;background:#18213d;color:#e8f0ff;border:1px solid #2a3866;border-radius:8px;padding:4px 8px;margin-left:6px}
 .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid rgba(255,255,255,.25)}
 .ctrl{margin-bottom:16px!important}
@@ -81,6 +82,7 @@ button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid r
     <button class="big ghost" id="btnRush">👑 보스전만</button>
     <button class="big ghost" id="btnPk">🪂 파쿠르 <span id="pkBest" style="opacity:.75;font-weight:500;font-size:14px"></span></button>
     <button class="big ghost" id="btnCodex">📖 스킬 도감</button>
+    <button class="big ghost" id="btnTest" style="font-size:15px;padding:8px 20px;opacity:.85">🧪 보스 테스트</button>
   </div>
 </div>
 <div id="mapWin" class="ov hidden">
@@ -97,6 +99,18 @@ button.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid r
   <div class="cxsec" style="color:#ffb020;width:100%;max-width:1000px">⚡ 액티브 1개</div><div class="rushgrid" id="rushActs"></div>
   <div class="cxsec" style="color:#2de2c6;width:100%;max-width:1000px">🌀 패시브 1개</div><div class="rushgrid" id="rushPas"></div>
   <div class="btns" style="margin:20px 0 10px"><button class="big" id="btnRushGo" disabled>시작 →</button><button class="big ghost" id="btnRushClose">뒤로</button></div>
+</div>
+<div id="testWin" class="ov hidden" style="justify-content:flex-start;padding-top:28px">
+  <h2 style="margin-bottom:6px">🧪 보스 테스트</h2>
+  <div class="sub" style="margin-bottom:14px">원하는 보스와 바로 싸워 봐요. 스킬과 레벨, 스테이지 체력 배율을 골라서 시작해요.</div>
+  <div class="cxsec" style="color:#ff9a9a;width:100%;max-width:1000px">👹 보스</div><div class="rushgrid" id="testBoss"></div>
+  <div class="cxsec" style="color:#ffb020;width:100%;max-width:1000px">⚡ 액티브 (선택 안 해도 됨)</div><div class="rushgrid" id="testActs"></div>
+  <div class="cxsec" style="color:#2de2c6;width:100%;max-width:1000px">🌀 패시브 (선택 안 해도 됨)</div><div class="rushgrid" id="testPas"></div>
+  <div class="sub" style="margin-top:14px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center">
+    <label>스킬 레벨 <select id="testLvl"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+    <label>보스 체력 <select id="testStage"><option value="0">기본 (1스테이지)</option><option value="1">2스테이지 배율</option><option value="2">3스테이지 배율</option><option value="3">4스테이지 배율</option></select></label>
+  </div>
+  <div class="btns" style="margin:18px 0 10px"><button class="big" id="btnTestGo" disabled>도전 →</button><button class="big ghost" id="btnTestClose">뒤로</button></div>
 </div>
 <div id="skinWin" class="ov hidden">
   <h2 style="margin-bottom:6px">🎨 스킨</h2>
@@ -486,6 +500,7 @@ addEventListener('keydown',e=>{
   if(e.code==='Escape'&&!document.getElementById('skinWin').classList.contains('hidden')){closeSkins();return;}
   if(e.code==='Escape'&&!document.getElementById('rushWin').classList.contains('hidden')){closeRush();return;}
   if(e.code==='Escape'&&!document.getElementById('mapWin').classList.contains('hidden')){closeMaps();return;}
+  if(e.code==='Escape'&&!document.getElementById('testWin').classList.contains('hidden')){closeTest();return;}
   if(state==='levelup'){const n=+e.key;if(n>=1&&n<=3)pickCard(n-1);return;}
   if((e.code==='Escape'||e.code==='KeyP')){if(state==='play')setPause(true);else if(state==='pause')setPause(false);return;}
   if(state!=='play')return;
@@ -1327,7 +1342,7 @@ function setPause(on){state=on?'pause':'play';document.getElementById('pause').c
 function gameOver(){
   state='over';
   const m=Math.floor(time/60),s=Math.floor(time%60);
-  if(br){br.deaths++;const B=BOSSES[MAP.boss];document.getElementById('overStats').innerHTML=`⚔️ 보스전만 ${br.idx+1}/${BR_ORDER.length} — ${B.icon} ${B.name}에게 쓰러짐<br>${SK[br.act].i}${lv[br.act]} ${SK[br.pas].i}${lv[br.pas]} 그대로 다시 도전할 수 있어요`;
+  if(br){br.deaths++;const B=BOSSES[MAP.boss],sk=[br.act,br.pas].filter(Boolean).map(k=>SK[k].i+lv[k]).join(' ')||'스킬 없음';document.getElementById('overStats').innerHTML=`${br.test?'🧪 보스 테스트':'⚔️ 보스전만 '+(br.idx+1)+'/'+BR_ORDER.length} — ${B.icon} ${B.name}에게 쓰러짐<br>${sk} 그대로 다시 도전할 수 있어요`;
     document.getElementById('btnRetry').textContent='같은 보스 재도전';document.getElementById('over').classList.remove('hidden');return;}
   document.getElementById('btnRetry').textContent='다시 하기';
   document.getElementById('overStats').innerHTML=`${MAP.emoji} ${MAP.name}<br>생존 시간 <b>${m}:${String(s).padStart(2,'0')}</b><br>처치 <b>${kills}</b> · 레벨 <b>${level}</b><br>`+Object.keys(SK).filter(k=>lv[k]).map(k=>`${SK[k].i}${lv[k]}`).join(' ');
@@ -1371,6 +1386,10 @@ function showClear(){
     document.getElementById('clearStats').innerHTML=`${MAP.emoji} ${MAP.name} 완주!<br>기록 <b>${fmtT(time)}</b> · 추락 <b>${pk.falls}</b>번<br>`+(pk.newBest?'<b style="color:#ffd166">🏆 새 최고 기록!</b>':`<span style="opacity:.75">최고 기록 ${b!=null?fmtT(b):'-'}</span>`);
     const bn=document.getElementById('btnNext');bn.style.display='';bn.textContent='다시 도전 ↻';bn.onclick=()=>startGame(MAP);
     document.getElementById('clear').classList.remove('hidden');return;}
+  if(br&&br.test){state='clear';const B=BOSSES[MAP.boss],bn=document.getElementById('btnNext');
+    document.getElementById('clearTitle').textContent='TEST CLEAR!';
+    document.getElementById('clearStats').innerHTML=`🧪 보스 테스트 — ${B.icon} ${B.name} 격파!<br>시간 <b>${fmtT(time)}</b>`;
+    bn.style.display='';bn.textContent='다시 도전 ↻';bn.onclick=()=>startRush();document.getElementById('clear').classList.remove('hidden');return;}
   if(br){state='clear';br.total+=time;const B=BOSSES[MAP.boss],last=br.idx>=BR_ORDER.length-1,bn=document.getElementById('btnNext');
     const nl=br.lvl+1,sk=k=>`${SK[k].i} ${SK[k].n} Lv ${Math.min(SK[k].max,br.lvl)}${!last&&br.lvl<SK[k].max?' → <b style="color:#ffd166">'+Math.min(SK[k].max,nl)+'</b>':''}`;
     document.getElementById('clearTitle').textContent=last?'ALL BOSSES DOWN!':'BOSS DOWN!';
@@ -1410,13 +1429,13 @@ document.getElementById('btnRetry').onclick=()=>br?startRush():startGame();
 /* ---------------- 보스전만 ---------------- */
 function startRush(){
   MAP=MAPS.find(m=>m.id===BR_ORDER[br.idx]);loadMap(MAP);reset();
-  for(const k of [br.act,br.pas])lv[k]=Math.min(SK[k].max,br.lvl);
+  for(const k of [br.act,br.pas])if(k)lv[k]=Math.min(SK[k].max,br.lvl);
   const p=player;if(lv.shell){p.maxHp=5+lv.shell;p.hp=p.maxHp;}if(lv.dash)p.dashC=dashMax(lv.dash);calcST();
-  stageNo=br.idx;const def=BOSS_ARENAS[MAP.boss];loadArena(def);
+  stageNo=br.test?br.stage:br.idx;const def=BOSS_ARENAS[MAP.boss];loadArena(def);
   Object.assign(p,{x:def.start[0],y:def.start[1],vx:0,vy:0});
   cam.x=clamp(p.x-W/S/2,-60,WORLD.w-W/S+60);cam.y=clamp(p.y-H/S*0.45,-60,Math.max(-60,FLOOR+140+HUD_PAD/S-H/S));
   spawnBoss();
-  state='play';['start','over','pause','lvup','clear','rushWin','mapWin'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  state='play';['start','over','pause','lvup','clear','rushWin','mapWin','testWin'].forEach(id=>document.getElementById(id).classList.add('hidden'));
 }
 function openRush(){
   const sel={act:br0.act,pas:br0.pas};
@@ -1430,7 +1449,21 @@ function openRush(){
 }
 const br0={act:null,pas:null};
 function closeRush(){document.getElementById('rushWin').classList.add('hidden');document.getElementById('start').classList.remove('hidden');}
-document.getElementById('btnRush').onclick=openRush;document.getElementById('btnRushClose').onclick=closeRush;
+document.getElementById('btnRush').onclick=openRush;
+const bt0={boss:null,act:null,pas:null};
+function openTest(){
+  const mk=(box,items,slot,desc)=>{box.innerHTML='';items.forEach(it=>{const d=document.createElement('div');d.className='rc'+(bt0[slot]===it.k?' on':'');
+    d.innerHTML=`<div class="t"><span>${it.i}</span>${it.n}</div><div class="d">${it.d}</div>`;
+    d.onclick=()=>{bt0[slot]=bt0[slot]===it.k&&slot!=='boss'?null:it.k;[...box.children].forEach((el,j)=>el.classList.toggle('on',items[j].k===bt0[slot]));document.getElementById('btnTestGo').disabled=!bt0.boss;};box.appendChild(d);});};
+  mk(document.getElementById('testBoss'),BR_ORDER.map(id=>{const m=MAPS.find(x=>x.id===id),B=BOSSES[m.boss];return{k:id,i:B.icon,n:B.name,d:`${m.emoji} ${m.name} · 체력 ${B.hp}`};}),'boss');
+  mk(document.getElementById('testActs'),ACTS.map(k=>({k,i:SK[k].i,n:SK[k].n,d:''})),'act');
+  mk(document.getElementById('testPas'),Object.keys(SK).filter(k=>!SK[k].act).map(k=>({k,i:SK[k].i,n:SK[k].n,d:''})),'pas');
+  document.getElementById('btnTestGo').disabled=!bt0.boss;
+  document.getElementById('start').classList.add('hidden');document.getElementById('testWin').classList.remove('hidden');document.getElementById('testWin').scrollTop=0;
+}
+function closeTest(){document.getElementById('testWin').classList.add('hidden');document.getElementById('start').classList.remove('hidden');}
+document.getElementById('btnTest').onclick=openTest;document.getElementById('btnTestClose').onclick=closeTest;
+document.getElementById('btnTestGo').onclick=()=>{if(!bt0.boss)return;br={test:true,act:bt0.act,pas:bt0.pas,idx:BR_ORDER.indexOf(bt0.boss),lvl:+document.getElementById('testLvl').value,stage:+document.getElementById('testStage').value,total:0,deaths:0};startRush();};document.getElementById('btnRushClose').onclick=closeRush;
 document.getElementById('btnRushGo').onclick=()=>{if(!br0.act||!br0.pas)return;br={act:br0.act,pas:br0.pas,idx:0,lvl:1,total:0,deaths:0};startRush();};
 document.getElementById('btnMenu1').onclick=showMenu;
 document.getElementById('btnMenu2').onclick=showMenu;
@@ -1827,7 +1860,7 @@ function drawHUD(){
     ctx.font='13px sans-serif';ctx.fillText('🏁',bx+bw+12,by+8);
   }else{
   const m=Math.floor(time/60),s=Math.floor(time%60);ctx.fillText(`${m}:${String(s).padStart(2,'0')}`,W/2,38);
-  ctx.font='14px system-ui,sans-serif';ctx.fillStyle='rgba(232,240,255,.7)';ctx.fillText(br?`⚔️ 보스전만 ${br.idx+1}/${BR_ORDER.length}`:`처치 ${kills}`,W/2,58);}
+  ctx.font='14px system-ui,sans-serif';ctx.fillStyle='rgba(232,240,255,.7)';ctx.fillText(br?(br.test?'🧪 보스 테스트':`⚔️ 보스전만 ${br.idx+1}/${BR_ORDER.length}`):`처치 ${kills}`,W/2,58);}
   if(boss&&bossActive){
     const bw=Math.min(560,W*0.6),bx=W/2-bw/2,by=86,B=BOSSES[boss.kind];
     ctx.textAlign='center';ctx.font='bold 16px system-ui,sans-serif';ctx.fillStyle='#ffd0d8';
