@@ -305,7 +305,11 @@ const BOSS_ARENAS={
     // 가운데 큰 용암 호수 + 양쪽 둑과 하프파이프
     terrain:[[40,820],[110,1150],[260,1360],[520,1450],[840,1470],[900,1660],[2100,1660],[2160,1470],[2480,1450],[2740,1360],[2890,1150],[2960,820]],
     lava:[[880,2120,1495]],
-    rects:[[1040,1060,140,40],[1430,960,140,40],[1820,1060,140,40],[1230,600,140,40],[1630,600,140,40],[360,960,130,40],[2510,960,130,40]]},
+    // 3층 발판: 1층(낮음, 2페 용암 바로 위) · 2층 · 3층(꼭대기)
+    rects:[[1000,1220,150,30],[1425,1220,150,30],[1850,1220,150,30],
+           [1200,980,150,30],[1650,980,150,30],
+           [1425,730,150,30],
+           [360,960,130,40],[2510,960,130,40]]},
   hawk:{id:'arena-hawk',theme:'skyBoss',w:3000,floor:1500,start:[350,1200],bossX:1500,pads:[],abyss:true,
     // 섬 3개 + 사이 낭떠러지. 울부짖기를 당할 땐 섬 위에 있어야 안전
     terrain:[[0,1260],[760,1260],[780,2600],[1120,2600],[1140,1220],[1860,1220],[1880,2600],[2220,2600],[2240,1260],[3000,1260]],
@@ -868,9 +872,13 @@ function updateHawk(e,dt){
 }
 function updateSerpent(e,dt){
   const p=player,L=e.lake,ph2=e.phase===2;e.t-=dt;e.msgT=Math.max(0,e.msgT-dt);
-  if(!ph2&&e.hp<=e.maxHp*0.5){e.phase=2;bossHintT=4;shake=18;txt(e.x,L.y-80,'용암이 차오른다!','#ff7b29');}
-  if(ph2)L.y+=((L.base-75)-L.y)*Math.min(1,dt*0.8); // 2페이즈: 용암 수위 상승
-  const lo=L.x0+110,hi=L.x1-110;
+  if(!ph2&&e.hp<=e.maxHp*0.5){e.phase=2;bossHintT=4;shake=18;txt(e.x,L.y-80,'용암이 차오른다! 발판 위로!','#ff7b29');}
+  if(ph2){ // 2페이즈: 용암이 크게 차올라 양쪽 가장자리까지 덮음 → 발판 위에서만 버틸 수 있음
+    L.y+=((L.base-165)-L.y)*Math.min(1,dt*0.8);
+    if(L.x0b==null){L.x0b=L.x0;L.x1b=L.x1;}
+    L.x0+=((arena?arena.x0:60)-L.x0)*Math.min(1,dt*0.8);L.x1+=((arena?arena.x1:WORLD.w-60)-L.x1)*Math.min(1,dt*0.8);
+  }
+  const lo=(L.x0b??L.x0)+110,hi=(L.x1b??L.x1)-110;
   if(e.st==='sub'){ // 용암 속에서 다음 위치로 이동
     e.hidden=true;e.x+=(e.tx-e.x)*Math.min(1,dt*3);e.y=L.y+140;
     if(e.t<=0){
@@ -906,8 +914,14 @@ function updateSerpent(e,dt){
 function drawSerpent(e){
   const L=e.lake,now=performance.now()/1000,f=e.flash>0;
   // 튀어나올 위치 경고 (부글부글)
-  if(e.st==='sub'&&e.t<0.9){const a=0.5+0.5*Math.sin(now*25);ctx.fillStyle=`rgba(255,230,120,${0.35*a})`;ctx.beginPath();ctx.ellipse(e.tx,L.y,70,14,0,0,7);ctx.fill();
-    for(let i=0;i<4;i++){const ph=(now*2+i*0.25)%1;ctx.fillStyle=`rgba(255,210,100,${1-ph})`;ctx.beginPath();ctx.arc(e.tx+Math.sin(i*2.1)*40,L.y-ph*24,4+ph*6,0,7);ctx.fill();}}
+  if(e.st==='sub'&&e.t<1.1){ // 튀어나올 자리: 보글보글 + 기둥 + 느낌표
+    const k=1-e.t/1.1,a=0.5+0.5*Math.sin(now*25);
+    const gl=ctx.createRadialGradient(e.tx,L.y,10,e.tx,L.y,110);gl.addColorStop(0,`rgba(255,240,150,${0.55*k+0.2})`);gl.addColorStop(1,'rgba(255,200,80,0)');ctx.fillStyle=gl;ctx.beginPath();ctx.ellipse(e.tx,L.y,110,34,0,0,7);ctx.fill();
+    ctx.fillStyle=`rgba(255,230,120,${0.45*a})`;ctx.beginPath();ctx.ellipse(e.tx,L.y,80+20*k,16,0,0,7);ctx.fill();
+    for(let i=0;i<9;i++){const ph=(now*(2.2+k*2)+i*0.11)%1,ox=Math.sin(i*2.1+i)*60;ctx.fillStyle=`rgba(255,${200+i*5},100,${1-ph})`;ctx.beginPath();ctx.arc(e.tx+ox,L.y-ph*(30+40*k),4+ph*8,0,7);ctx.fill();}
+    const cg=ctx.createLinearGradient(0,L.y-260,0,L.y);cg.addColorStop(0,'rgba(255,120,40,0)');cg.addColorStop(1,`rgba(255,140,50,${0.35*k})`);ctx.fillStyle=cg;ctx.fillRect(e.tx-40,L.y-260,80,260);
+    ctx.font='bold 34px system-ui,sans-serif';ctx.textAlign='center';ctx.fillStyle=`rgba(255,240,170,${0.5+0.5*a})`;ctx.fillText('!',e.tx,L.y-60-20*k);
+    if(Math.random()<0.5)parts.push({x:e.tx+rand(-50,50),y:L.y-2,vx:rand(-40,40),vy:-rand(120,320),life:.5,max:.5,c:Math.random()<0.5?'#ffd166':'#ff7b29',s:rand(2,4)});}
   ctx.save();ctx.beginPath();ctx.rect(cam.x-200,cam.y-400,W/S+400,L.y-(cam.y-400)+2);ctx.clip(); // 용암 위만 그림
   for(let i=e.trail.length-1;i>=4;i-=4){const q=e.trail[i],r=Math.max(12,26-i*0.08);
     const g=ctx.createRadialGradient(q.x-r*0.3,q.y-r*0.3,r*0.2,q.x,q.y,r);g.addColorStop(0,f?'#fff':'#ff9a3a');g.addColorStop(1,f?'#fff':'#7a1a0a');
